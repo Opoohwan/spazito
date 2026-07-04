@@ -1,0 +1,13 @@
+# clasp config — contains the live script ID, never commit this
+.clasp.json
+
+# Local secrets file if used for any manual testing
+.env
+secrets.json
+
+# Node modules if clasp is installed locally
+node_modules/
+
+# OS noise
+.DS_Store
+Thumbs.db
