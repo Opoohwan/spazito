@@ -1,0 +1,12 @@
+{
+  "name": "spazito",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Automated SMS market price alerts on Google Apps Script. package.json exists ONLY for local testing (Jest) — nothing here is deployed; clasp pushes src/ alone.",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0"
+  }
+}

@@ -19,17 +19,18 @@ Runs entirely on free-tier infrastructure. No server, no database.
 ## Project Structure
 
 ```
-appsscript.json          — manifest; webapp access "Anyone" (Twilio webhook); timezone America/Los_Angeles
-src/                     — shell modules (side effects: fetch, send, persist, orchestrate)
+src/                     — the ONLY folder clasp pushes (.clasp.json rootDir: "src")
+  appsscript.json        — manifest; must live inside src/ (clasp rootDir); webapp access "Anyone" (Twilio webhook); timezone America/Los_Angeles
   Config.js              — sole reader/validator of secret Script Properties; fails loud if any missing
   Watchlist.js           — sole owner of mutable state (watchlist + paused); LockService-guarded writes
   PriceService.js        — sole caller of Alpha Vantage GLOBAL_QUOTE; spaces calls, no retries (ADR 007); returns ordered [{ticker,price,ok}]
   SmsService.js          — sole caller of Twilio REST; DEBUG_MODE logs instead of sending
   Scheduler.js           — orchestrates the daily run (Watchlist → PriceService → Formatter → SmsService); trigger + testSendNow
   CommandHandler.js      — doPost(e): authorize sender → parse → dispatch table → reply
-  core/                  — pure modules (no I/O; unit-tested in Node)
+  core/                  — pure modules (no I/O; unit-tested in Node; tests live alongside as *.test.js, kept off the push by .claspignore)
     Formatter.js         — quote data → the message string (display-rules table; ADR 006 §10)
     CommandParser.js     — raw SMS body → parsed command intent
+    Tickers.js           — canonical ticker text rules for shell callers (normalize once at the boundary)
 .clasp.json              — clasp config (GITIGNORED — contains script ID)
 .gitignore               — excludes .clasp.json, secrets, node_modules, coverage
 README.md                — orientation; full setup lives in doc/dev/PROCESSES.md

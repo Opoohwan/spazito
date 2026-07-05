@@ -128,6 +128,7 @@ only reach across the boundaries listed. Anything else is bleed.
 | `Formatter` | core | Turn quote data into the daily message string (incl. empty & all-failed cases) | (nothing) | Any I/O whatsoever |
 | `CommandParser` | core | Turn a raw SMS body into a parsed intent | (nothing) | Any I/O whatsoever |
 | `Replies` | core | Hold command reply / help / error copy strings | (nothing) | Any I/O; price formatting (that's `Formatter`) |
+| `Tickers` | core | Canonical ticker text rules (normalize once, at the shell boundary) | (nothing) | Any I/O whatsoever |
 | `Scheduler` | shell | Orchestrate the daily run | `Watchlist`, `PriceService`, `Formatter`, `SmsService` | Fetch, format, persist, or send *itself* |
 | `CommandHandler` | shell | `doPost` entry; authorize, parse, dispatch, reply | `Config`, `CommandParser`, `Replies`, `Watchlist`, `PriceService`, `SmsService` | Contain command business logic inline; format prices |
 
@@ -139,6 +140,14 @@ to fetch a price or send a text, it calls the owner — it does not open its own
 **Invariant:** `Scheduler` and `CommandHandler` are orchestrators. They contain no
 `UrlFetchApp`, no `.toFixed`, no `PropertiesService`. If either grows logic, that logic
 moves into the module that owns it (or a new core module).
+
+**Note on `Tickers` (added at the Chunk 0 gate):** `Tickers.normalize` exists for
+**shell** callers (`Watchlist`, `CommandHandler`) to canonicalize user input once at the
+boundary. Core modules may not call it — core modules are leaves (§2) — so where this
+standard requires a core module to defensively uppercase (`Formatter` §10,
+`CommandParser` §6), it does so with its own local one-liner. That duplication is
+mandated by the leaf rule and is deliberate; collapsing it into a core→core call is the
+violation, not the duplication.
 
 ---
 

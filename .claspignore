@@ -1,0 +1,11 @@
+**/*.test.js
+*.test.js
+**/*.spec.js
+*.spec.js
+node_modules/**
+coverage/**
+jest.config.js
+package.json
+package-lock.json
+tools/**
+doc/**

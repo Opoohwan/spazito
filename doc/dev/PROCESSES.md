@@ -3,6 +3,11 @@
 How to do the common development tasks. Spazito is developed locally with `clasp` and
 runs on Google Apps Script; there is no build system beyond `clasp push`.
 
+> **clasp version note:** the commands below use the clasp 2.x names. clasp 3.x renamed
+> several — `create` → `create-script`, `deploy` → `create-deployment`, `run` →
+> `run-function`. If a command fails with "unknown command", try the 3.x name; the
+> workflow is otherwise identical.
+
 ---
 
 ## clasp commands
@@ -41,17 +46,41 @@ live script and must never be committed (ADR 003).
 Condensed from the README. Order matters.
 
 1. `npm install -g @google/clasp` → `clasp login`
-2. `clasp create --type webapp` (new) or `clasp clone <scriptId>` (existing)
+2. `clasp create --type webapp` (new) or `clasp clone <scriptId>` (existing). Then,
+   **before any push:**
+   - Edit the generated `.clasp.json` so it contains `"rootDir": "src"`. The real
+     manifest lives at `src/appsscript.json` and only `src/` is ever pushed. Pushing
+     before this edit would upload clasp's default manifest instead — wrong timezone, no
+     anonymous web-app access — and the Twilio webhook would break.
+   - Delete any `appsscript.json` / `Code.js` that `clasp create` generated at the
+     project root; the committed `src/appsscript.json` is the only manifest.
+
+   The repo's `.claspignore` is the backstop that keeps `*.test.js` off the push (a
+   pushed test file's `require` would kill every execution — ADR 006 §12). Its test-file
+   globs are the load-bearing lines; the `node_modules`/`doc`/config entries only matter
+   if `rootDir` was forgotten. (`.claspignore` is glob-matched — it does **not** support
+   `#` comments, which is why the explanation lives here instead of in the file.)
 3. Set **all** Script Properties (see `SCHEMA.md` for the full table): the five
    secrets, plus `DEBUG_MODE` if iterating.
 4. `clasp push`
 5. `clasp deploy` → copy the resulting web-app URL
 6. In the Twilio console, set the number's "A message comes in" webhook to that URL,
    method **POST**
-7. `clasp run createTrigger` — installs the Mon–Fri 5pm trigger (push alone does not;
-   the trigger is runtime state, not source)
+7. Install the Mon–Fri 5pm trigger — push alone does **not** do this; the trigger is
+   runtime state, not source. The reliable path: `clasp open`, select `createTrigger`
+   in the editor's function dropdown, click **Run**. (`clasp run createTrigger` does
+   the same but needs extra GCP setup and was renamed `run-function` in clasp 3.x —
+   treat it as the optional path, not the required one.)
 8. Smoke test: text `list` → confirm the reply; run `testSendNow` → confirm the SMS
    arrives (or, with `DEBUG_MODE="true"`, confirm the message is logged)
+
+**Why the web app is deliberately public:** `src/appsscript.json` sets
+`"access": "ANYONE_ANONYMOUS"` + `"executeAs": "USER_DEPLOYING"`. Twilio cannot log in
+to Google, so the webhook endpoint must accept anonymous POSTs, and executing as the
+deployer is what lets `doPost` read Script Properties. This means every protection is
+application-layer — the URL bearer token, sender check, replay lock, and lockout of
+ADR 008. **Do not wire the Twilio webhook to a live deployment until those gates exist
+in code (Chunk 8b).**
 
 ---
 

@@ -1,0 +1,3 @@
+# Normalize line endings: everything is LF in the repo and in working trees.
+# Prevents CRLF churn between Windows (David's machine) and any other environment.
+* text=auto eol=lf
