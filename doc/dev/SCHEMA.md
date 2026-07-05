@@ -35,13 +35,14 @@ a clear, named error if one is missing — it never proceeds with an `undefined`
 |---|---|---|---|---|
 | `ALPHA_VANTAGE_KEY` | yes | string | `RIBXT3XYZ...` | alphavantage.co free API key |
 | `TWILIO_SID` | yes | `AC` + 32 hex | `AC1a2b...` | Twilio console → Account Info |
-| `TWILIO_AUTH_TOKEN` | yes | 32 hex | `f9e8d7...` | Twilio console → Account Info |
+| `TWILIO_AUTH_TOKEN` | yes | 32 hex | `f9e8d7...` | The Twilio Basic-auth password. Hardened path (ADR 008): the scoped API key's **Secret** (shown once at key creation), with `TWILIO_API_KEY_SID` set. Fallback: Twilio console → Account Info → Auth Token (SmsService logs a warning when running this way) |
 | `TWILIO_FROM_NUMBER` | yes | E.164 | `+15095551234` | Your Twilio phone number |
 | `RECIPIENT_NUMBER` | yes | E.164 | `+17075559876` | The recipient's mobile (Eureka, CA) |
 | `WEBHOOK_TOKEN` | yes | long random | `9f3c…` (64 ch) | Bearer token in the webhook URL `?k=` (ADR 008) |
 | `VERIFIER_KEY` | yes | long random | `k7Q…` | HMAC key for the `[#N TAG]` message signature (ADR 008); shared out-of-band with the recipient |
 | `UNLOCK_SECRET` | yes | random | `re-arm…` | Re-arms the bot after auto-lockout (ADR 008) |
 | `DEBUG_MODE` | no | `"true"` / unset | `true` | Set to `"true"` to log instead of sending |
+| `TWILIO_API_KEY_SID` | no | `SK` + 32 hex | `SK9f8e...` | Twilio console → Account → API keys. If set, `SmsService` authenticates as this scoped key (with `TWILIO_AUTH_TOKEN` holding the key's *secret*) instead of the master Auth Token — the ADR 008 hardened path |
 
 (Twilio auth uses a **scoped API Key / subaccount, not the master `TWILIO_AUTH_TOKEN`** —
 ADR 008 — so a leaked property can at worst send messages, not own the account.)

@@ -19,8 +19,9 @@
 module.exports = {
   testEnvironment: 'node',
 
-  // Tests live alongside the source they test: src/**/*.test.js
-  roots: ['<rootDir>/src'],
+  // Tests live alongside the source they test (src/**/*.test.js), plus the
+  // fidelity tests that pin the shared GAS fakes (test/gasMocks.test.js).
+  roots: ['<rootDir>/src', '<rootDir>/test'],
 
   // Coverage always on, so the floors below are enforced on every run.
   collectCoverage: true,
