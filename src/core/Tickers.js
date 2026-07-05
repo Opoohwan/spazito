@@ -11,10 +11,6 @@
  * leaves (ADR 006 §2) — so where the standard requires them to defensively
  * uppercase (ADR 006 §10), they do it locally. That small duplication is
  * mandated by the leaf rule; do not "DRY" it into a core→core call.
- *
- * This was also Chunk 0's "prove the pipeline" module: the first file that
- * demonstrated the dual-load pattern (same .js file runs in Apps Script AND
- * in Node under Jest) actually works end to end.
  */
 const Tickers = {
   /**
@@ -28,6 +24,22 @@ const Tickers = {
   normalize(raw) {
     if (raw === undefined || raw === null) return '';
     return String(raw).trim().toUpperCase();
+  },
+
+  /**
+   * True when the input looks like a real ticker symbol: 1–10 characters,
+   * letters/digits plus the dot and hyphen real symbols use (BRK.B, BF-B).
+   *
+   * This is a FORMAT allowlist, not an existence check — "does this symbol
+   * actually trade" is Alpha Vantage's question (PriceService answers it).
+   * The allowlist is what keeps junk out of the stored watchlist and means
+   * nothing weird can ever ride a ticker into an API URL.
+   *
+   * Normalizes internally (same module, so no leaf-rule issue) — callers
+   * don't have to pre-clean.
+   */
+  isValid(raw) {
+    return /^[A-Z0-9][A-Z0-9.\-]{0,9}$/.test(this.normalize(raw));
   },
 };
 

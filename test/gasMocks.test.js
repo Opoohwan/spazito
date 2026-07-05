@@ -5,6 +5,7 @@
 const {
   makeScriptProperties,
   installPropertiesService,
+  installLockService,
   uninstallGasGlobals,
 } = require('./gasMocks');
 
@@ -43,6 +44,29 @@ describe('makeScriptProperties fidelity', () => {
   });
 });
 
+describe('installLockService fidelity', () => {
+  test('waitLock records the timeout and returns quietly on success — like real GAS', () => {
+    const recorder = installLockService();
+    const lock = global.LockService.getScriptLock();
+    expect(() => lock.waitLock(5000)).not.toThrow();
+    expect(recorder.waitLockCalls).toEqual([5000]);
+  });
+
+  test('failWait makes waitLock THROW, matching real GAS timeout behavior (not return false)', () => {
+    installLockService({ failWait: true });
+    const lock = global.LockService.getScriptLock();
+    expect(() => lock.waitLock(5000)).toThrow();
+  });
+
+  test('releaseLock increments the release counter', () => {
+    const recorder = installLockService();
+    const lock = global.LockService.getScriptLock();
+    lock.releaseLock();
+    lock.releaseLock();
+    expect(recorder.releaseCount).toBe(2);
+  });
+});
+
 describe('install/uninstall lifecycle', () => {
   test('installPropertiesService exposes the store through the global', () => {
     installPropertiesService({ A: '1' });
@@ -51,8 +75,11 @@ describe('install/uninstall lifecycle', () => {
 
   test('uninstallGasGlobals removes every installed global (no cross-test leaks)', () => {
     installPropertiesService({});
+    installLockService();
     expect(global.PropertiesService).toBeDefined();
+    expect(global.LockService).toBeDefined();
     uninstallGasGlobals();
     expect(global.PropertiesService).toBeUndefined();
+    expect(global.LockService).toBeUndefined();
   });
 });

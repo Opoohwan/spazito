@@ -70,6 +70,14 @@ if (typeof module !== 'undefined') module.exports = { Formatter };
 **Invariant:** the guard is the last line of every module. In GAS, `module` is undefined
 so the line is inert; in Node, it exposes the module to `require` for tests.
 
+**Invariant (Node-side shared scope):** the guard is exactly the one line above — it
+never `require`s dependencies and never touches `global`. GAS gives every module a
+shared global scope; Node tests recreate it in **one** place, the Jest bootstrap
+`test/gasScope.js` (wired via `setupFiles`), which installs each **core** module as a
+global. Shell collaborators are installed as (usually mocked) globals by the tests that
+need them, through the `gasMocks` teardown registry. (Decided at the Chunk 2 gate after
+a per-module `global.X = …` guard variant appeared — one bootstrap, not N forked guards.)
+
 **Invariant:** every module object has a **globally-unique name** — GAS concatenates all
 files into one global scope, so two files each declaring `const Formatter` is a fatal
 `SyntaxError` that kills every execution.

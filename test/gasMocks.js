@@ -61,10 +61,37 @@ function installPropertiesService(initial = {}) {
   return props;
 }
 
+/**
+ * Install a fake global LockService. Returns a recorder so tests can assert
+ * lock discipline (writes acquire + release; reads never touch the lock).
+ *
+ * options.failWait = true simulates a contended lock: waitLock throws, as
+ * real GAS does on timeout (that is Watchlist's "busy" path).
+ */
+function installLockService({ failWait = false } = {}) {
+  const recorder = { waitLockCalls: [], releaseCount: 0 };
+  const lock = {
+    waitLock(timeoutMs) {
+      recorder.waitLockCalls.push(timeoutMs);
+      if (failWait) throw new Error('Could not acquire lock within the timeout.');
+    },
+    releaseLock() {
+      recorder.releaseCount += 1;
+    },
+  };
+  installGlobal('LockService', { getScriptLock: () => lock });
+  return recorder;
+}
+
 /** Remove every fake GAS global any install* helper put in place. */
 function uninstallGasGlobals() {
   for (const name of installedGlobals) delete global[name];
   installedGlobals.clear();
 }
 
-module.exports = { makeScriptProperties, installPropertiesService, uninstallGasGlobals };
+module.exports = {
+  makeScriptProperties,
+  installPropertiesService,
+  installLockService,
+  uninstallGasGlobals,
+};

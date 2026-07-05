@@ -23,6 +23,11 @@ module.exports = {
   // fidelity tests that pin the shared GAS fakes (test/gasMocks.test.js).
   roots: ['<rootDir>/src', '<rootDir>/test'],
 
+  // Recreates GAS's shared global scope for Node: installs the pure core
+  // modules as globals so shell modules can reference them by bare name,
+  // exactly as they do in Apps Script (see test/gasScope.js).
+  setupFiles: ['<rootDir>/test/gasScope.js'],
+
   // Coverage always on, so the floors below are enforced on every run.
   collectCoverage: true,
   collectCoverageFrom: [

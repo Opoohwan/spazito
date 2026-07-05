@@ -39,3 +39,40 @@ describe('Tickers.normalize', () => {
     expect(Tickers.normalize('sp y')).toBe('SP Y');
   });
 });
+
+describe('Tickers.isValid', () => {
+  test('accepts plain symbols regardless of input case or padding', () => {
+    expect(Tickers.isValid('SPY')).toBe(true);
+    expect(Tickers.isValid(' tsla ')).toBe(true);
+    expect(Tickers.isValid('F')).toBe(true);
+  });
+
+  test('accepts the dot and hyphen shapes real symbols use', () => {
+    expect(Tickers.isValid('BRK.B')).toBe(true);
+    expect(Tickers.isValid('BF-B')).toBe(true);
+  });
+
+  test('rejects empty and whitespace-only input', () => {
+    expect(Tickers.isValid('')).toBe(false);
+    expect(Tickers.isValid('   ')).toBe(false);
+    expect(Tickers.isValid(null)).toBe(false);
+    expect(Tickers.isValid(undefined)).toBe(false);
+  });
+
+  test('rejects strings with internal spaces or symbols that could ride into a URL', () => {
+    expect(Tickers.isValid('SP Y')).toBe(false);
+    expect(Tickers.isValid('$SPY')).toBe(false);
+    expect(Tickers.isValid('A;B')).toBe(false);
+    expect(Tickers.isValid('A&B=C')).toBe(false);
+  });
+
+  test('rejects anything longer than 10 characters', () => {
+    expect(Tickers.isValid('ABCDEFGHIJ')).toBe(true);   // exactly 10
+    expect(Tickers.isValid('ABCDEFGHIJK')).toBe(false); // 11
+  });
+
+  test('rejects a leading dot or hyphen (first char must be a letter or digit)', () => {
+    expect(Tickers.isValid('.SPY')).toBe(false);
+    expect(Tickers.isValid('-SPY')).toBe(false);
+  });
+});

@@ -71,7 +71,10 @@ ADR 008 — so a leaked property can at worst send messages, not own the account
 - `Watchlist` rewrites the whole `WATCHLIST` value on every add/remove, under a
   `LockService` script lock so the read-modify-write is atomic against concurrent
   `doPost`s (ADR 006 §5). A single property write; no cross-key transaction (ADR 004).
-- Ticker symbols are stored uppercased and de-duplicated by `Watchlist` on write.
+- Ticker symbols are stored uppercased and de-duplicated by `Watchlist` on write — and
+  the read path self-heals: `tickers()` re-normalizes, drops entries that fail the
+  ticker-format allowlist, and de-dupes, so a hand-edited or badly-restored property
+  can't feed junk into API URLs or double-spend the daily call budget (ADR 007).
 - The watchlist is **capped at 10 tickers** — the Alpha Vantage free-tier budget (ADR
   007). `add` refuses beyond the cap with a friendly reply.
 
