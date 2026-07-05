@@ -111,9 +111,11 @@ Never add a `.toFixed` or comma-grouping call to a shell module.
 2. Add a unit test covering the edge cases: a sub-dollar price, an unusually large
    price (comma grouping), the exact decimal rule, and a missing/failed quote.
 
-Rules (a data table in `Formatter`): SPY→"S&P" and GLD→"Gold" use thousands-comma,
-0 decimals; SLV→"Silver" uses 2 decimals; the default rule for any custom ticker is
-symbol label + 2 decimals; a failed ticker renders in place as `Label n/a`.
+**`Formatter.DISPLAY_RULES` (the table in `src/core/Formatter.js`) is the source of
+truth.** Illustration only — as of this writing: SPY→"S&P" and GLD→"Gold" use
+thousands-comma, 0 decimals; SLV→"Silver" uses 2 decimals; the default rule for any
+custom ticker is symbol label + 2 decimals; a failed ticker renders in place as
+`Label n/a`. If this paragraph and the code table ever disagree, the code table wins.
 
 ---
 

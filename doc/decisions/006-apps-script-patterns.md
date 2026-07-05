@@ -312,7 +312,8 @@ Prices are money; formatting them is pure logic with real traps, and it lives in
 - Alpha Vantage returns prices as **strings.** Parse once, at the core boundary; do not
   pass raw API strings around.
 - Display rules live as a **data table** in `Formatter` — `{ ticker → { label, decimals } }`
-  with a default rule — not as scattered per-ticker `if` branches:
+  with a default rule — not as scattered per-ticker `if` branches. **The code table
+  (`Formatter.DISPLAY_RULES`) is the source of truth; the listing below is illustrative:**
   - `SPY → { label: "S&P", decimals: 0 }`, `GLD → { label: "Gold", decimals: 0 }`,
     `SLV → { label: "Silver", decimals: 2 }`
   - default (any custom ticker) → `{ label: <symbol>, decimals: 2 }`
