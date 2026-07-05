@@ -7,7 +7,7 @@
 
 Spazito holds five secrets: `ALPHA_VANTAGE_KEY`, `TWILIO_SID`, `TWILIO_AUTH_TOKEN`,
 `TWILIO_FROM_NUMBER`, and `RECIPIENT_NUMBER`. The source code is version-controlled in
-git and may be pushed to a remote. Anything hardcoded in a `.gs` file is committed in
+git and may be pushed to a remote. Anything hardcoded in source is committed in
 plaintext — permanently, in history, even if later removed. A leaked Twilio auth token
 is a billable-fraud vector; a leaked Alpha Vantage key burns the daily quota.
 
@@ -15,7 +15,7 @@ is a billable-fraud vector; a leaked Alpha Vantage key burns the daily quota.
 
 All secrets live exclusively in **Apps Script Script Properties** (Project Settings →
 Script Properties), set by hand in the editor. They are read **only** through
-`Config.gs`, which is the single access point. `Config` validates that every required
+`Config.js`, which is the single access point. `Config` validates that every required
 key is present at startup and throws a clear, named error immediately if one is
 missing — it never silently proceeds and fails halfway through a run.
 

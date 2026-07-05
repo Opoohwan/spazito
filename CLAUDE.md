@@ -19,17 +19,25 @@ Runs entirely on free-tier infrastructure. No server, no database.
 ## Project Structure
 
 ```
-appsscript.json          — manifest; webapp access set to "Anyone" (required for Twilio webhook)
-src/
-  Config.gs              — reads all API keys from Script Properties (NEVER hardcode keys)
-  PriceService.gs        — Alpha Vantage GLOBAL_QUOTE fetches
-  SmsService.gs          — outbound SMS via Twilio REST API
-  Scheduler.gs           — 5pm Mon-Fri trigger; calls PriceService + SmsService
-  CommandHandler.gs      — doPost(e) entrypoint; parses incoming SMS, routes to commands
-  Watchlist.gs           — get/add/remove tickers, get/set paused state, via PropertiesService
+appsscript.json          — manifest; webapp access "Anyone" (Twilio webhook); timezone America/Los_Angeles
+src/                     — shell modules (side effects: fetch, send, persist, orchestrate)
+  Config.js              — sole reader/validator of secret Script Properties; fails loud if any missing
+  Watchlist.js           — sole owner of mutable state (watchlist + paused); LockService-guarded writes
+  PriceService.js        — sole caller of Alpha Vantage GLOBAL_QUOTE; spaces calls, no retries (ADR 007); returns ordered [{ticker,price,ok}]
+  SmsService.js          — sole caller of Twilio REST; DEBUG_MODE logs instead of sending
+  Scheduler.js           — orchestrates the daily run (Watchlist → PriceService → Formatter → SmsService); trigger + testSendNow
+  CommandHandler.js      — doPost(e): authorize sender → parse → dispatch table → reply
+  core/                  — pure modules (no I/O; unit-tested in Node)
+    Formatter.js         — quote data → the message string (display-rules table; ADR 006 §10)
+    CommandParser.js     — raw SMS body → parsed command intent
 .clasp.json              — clasp config (GITIGNORED — contains script ID)
-.gitignore               — excludes .clasp.json and any local secrets
-README.md                — full setup and deployment instructions
+.gitignore               — excludes .clasp.json, secrets, node_modules, coverage
+README.md                — orientation; full setup lives in doc/dev/PROCESSES.md
+
+Source is authored as .js so Node/Jest load it directly for tests; clasp pushes these to
+Apps Script, where they run as .gs in one shared global scope. The dual-load guard
+(`if (typeof module !== 'undefined') module.exports = {...}`) makes each file work in
+both environments. See ADR 006 §2.
 ```
 
 ## Commands
@@ -68,31 +76,46 @@ Set these via `clasp open` → Project Settings → Script Properties:
 | `RECIPIENT_NUMBER` | SMS destination (E.164 format) |
 | `DEBUG_MODE` | Set `"true"` to log instead of sending SMS |
 
-`Config.gs` reads all of these. If a key is missing, it should throw a clear error immediately rather than silently failing mid-run.
+`Config.js` reads all of these. If a key is missing, it should throw a clear error immediately rather than silently failing mid-run.
 
 ## Feature Spec
 
-### Scheduled alert (Scheduler.gs)
+### Scheduled alert (Scheduler.js)
 - Time-based trigger: Mon–Fri at 5:00pm **America/Los_Angeles** (recipient's own zone, Eureka CA — tracks their wall clock through DST; see ADR 002)
 - Default watchlist: SPY, GLD, SLV (if PropertiesService has no custom list)
+- Watchlist capped at 10 tickers — Alpha Vantage free-tier budget (see ADR 007)
+- If the watchlist is empty: send a short "watchlist is empty — text `add TICKER`" notice, not a blank text
 - If `paused` flag is true: skip entirely, send nothing
-- Fetch each ticker via Alpha Vantage GLOBAL_QUOTE
-- Message format (confirmed with user):
+- Fetch each ticker via Alpha Vantage GLOBAL_QUOTE, **spacing calls to stay under 5/min** (ADR 007)
+- Message format (base format confirmed with user; the failed-ticker and custom-ticker
+  rules below were decided 2026-07-04 and are open to your adjustment):
   ```
-  S&P 7,500 | Gold 4,500 | Silver 70.00
+  S&P 7,500 | Gold 4,500 | Silver 70.00 [#47 A3F9C2E1]
   ```
-  - SPY → label "S&P", price: thousands-comma, no decimals
-  - GLD → label "Gold", price: thousands-comma, no decimals
-  - SLV → label "Silver", price: exactly 2 decimal places
-  - Custom tickers: `Ticker Price | Ticker Price | ...` — generalize gracefully
+  `Formatter` (core) builds the price line; a **shell signer** then appends the `[#N TAG]`
+  auth block (sequence count + HMAC — ADR 008 §6) so the recipient can verify authenticity
+  with `tools/spazito-verifier.html`. Display rules live as a **data table in
+  `core/Formatter.js`** (ADR 006 §10), not scattered as per-ticker branches:
+  - SPY → label "S&P", thousands-comma, **0 decimals**
+  - GLD → label "Gold", thousands-comma, **0 decimals**
+  - SLV → label "Silver", thousands-comma, **2 decimals**
+  - Any other (custom) ticker → label = the symbol, thousands-comma, **2 decimals** (the default rule)
+  - A ticker whose fetch failed shows in place as `Label n/a`
+    (e.g. `S&P n/a | Gold 4,500 | Silver 70.00`) — the line never silently drops a slot
 
-### Incoming SMS commands (CommandHandler.gs → doPost)
+### Incoming SMS commands (CommandHandler.js → doPost)
 Twilio POSTs form-encoded data. Read `e.parameter.Body` and `e.parameter.From`.
 
-- **Security:** validate `From` matches `RECIPIENT_NUMBER` before acting on any command
+- **Security:** validate `From` matches `RECIPIENT_NUMBER` before acting on any command.
+  This is the *baseline* guard — and `From` is spoofable by anyone who learns the webhook
+  URL, so a POST body alone is not proof of origin. Twilio request-signature validation
+  is the hardening path (ADR 006 §11 + ROADMAP).
 - **Commands** (case-insensitive, trim whitespace):
-  - `add TICKER` — validate ticker via Alpha Vantage first, then add to watchlist
-  - `remove TICKER` — remove from watchlist; friendly no-op if not present
+  - `add TICKER` — validate via Alpha Vantage first (costs one call, ADR 007), then add.
+    Already present → friendly "already tracking" no-op. Unknown symbol → "couldn't find
+    TICKER — not added". At the 10-ticker cap → refuse with a friendly message.
+  - `remove TICKER` — remove from watchlist; friendly no-op if not present; if this
+    empties the list, confirm and note the list is now empty.
   - `pause` / `stop` — set paused flag true
   - `resume` / `start` — set paused flag false
   - `list` / `status` — reply with current watchlist + active/paused state
@@ -100,12 +123,17 @@ Twilio POSTs form-encoded data. Read `e.parameter.Body` and `e.parameter.From`.
 - Every command sends a confirmation SMS back via Twilio REST API (not TwiML response)
 
 ### Error handling (runs unattended — this matters)
-- Wrap all Alpha Vantage calls in try/catch
-- If one ticker fails, don't fail the whole message — send what succeeded, note the failure
+- Wrap the whole scheduled run in a **top-level try/catch** — never die silently
+- Wrap all Alpha Vantage calls in **per-ticker** try/catch
+- If one ticker fails, don't fail the whole message — send what succeeded; the failed
+  ticker shows as `Label n/a` in place (see message format)
 - If Twilio send fails, log to Apps Script execution log
 - Guard against unauthorized senders on the webhook
 - Guard against malformed/empty SMS bodies
-- Alpha Vantage free tier: 25 req/day, 5/min — well within normal usage, but respect it
+- Alpha Vantage free tier: 25 req/day, 5/min — the watchlist cap and call spacing keep
+  the daily run within budget (ADR 007)
+- Market holidays: the trigger still fires Mon–Fri; on a closed-market day Alpha Vantage
+  returns the last close, so the text reflects prior-close prices. Accepted behavior.
 
 ## Code Style
 
@@ -120,26 +148,22 @@ This overrides the usual "write no comments" default.
 
 ## Key Invariants
 
-- **Never hardcode API keys in source.** They will be committed to git. All secrets live in Script Properties, read via `Config.gs`.
+- **Never hardcode API keys in source.** They will be committed to git. All secrets live in Script Properties, read via `Config.js`.
 - `.clasp.json` must be in `.gitignore` — it contains the script ID which ties to the live script.
 - All times/triggers use `America/Los_Angeles` (the recipient's zone; DST-aware so "5pm" always means 5pm on their clock — see ADR 002).
-- `doPost` must validate the sender's phone number before executing any command.
-- `DEBUG_MODE=true` in Script Properties logs instead of sending — use this when iterating on formatting.
+- `doPost` runs the **layered auth gate** (URL token → `From` → `MessageSid` replay) before any command — **ADR 008 is authoritative; it is required, not optional.**
+- `DEBUG_MODE=true` gates **Twilio sends only** (logs instead of texting). It does *not* stop Alpha Vantage calls — formatting iteration still spends quota unless the fetch is mocked.
 
 ## Testing
 
 - `testSendNow()` — bypasses the time trigger, runs the full scheduled alert flow immediately
-- `DEBUG_MODE` Script Property — set `"true"` to log output instead of firing Twilio calls
+- `DEBUG_MODE` Script Property — set `"true"` to log the outbound SMS instead of firing Twilio. Gates Twilio only; `testSendNow` still calls Alpha Vantage and spends quota. To exercise formatting with zero spend, unit-test `Formatter` in Node.
 - Test incoming commands by texting the Twilio number directly after deploying the web app
 
 ## Deployment Checklist
 
-1. `npm install -g @google/clasp`
-2. `clasp login`
-3. `clasp create --type webapp` (or `clasp clone <scriptId>` for existing)
-4. Set all Script Properties (see table above)
-5. `clasp push`
-6. Deploy as Web App via `clasp deploy` — copy the resulting URL
-7. In Twilio console: set the number's "A message comes in" webhook to the Web App URL, method POST
-8. Run `createTrigger()` once to install the Mon-Fri 5pm time-based trigger (can't be created by push alone — must run once in editor or via `clasp run`)
-9. Smoke test: text `list` to the Twilio number, confirm reply; run `testSendNow()`, confirm SMS arrives
+The canonical, step-by-step setup and deployment guide is the single source of truth in
+[`doc/dev/PROCESSES.md`](doc/dev/PROCESSES.md) — kept in one place so the steps can't
+drift between two files. In brief: `clasp login` → create/clone → set Script Properties
+→ `clasp push` → `clasp deploy` → wire the Twilio webhook (POST) → run `createTrigger()`
+once → smoke test (`list`, then `testSendNow`).

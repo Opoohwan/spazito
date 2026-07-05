@@ -48,11 +48,15 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 - [ ] `clasp create --type webapp`; write `appsscript.json` (timezone
       `America/Los_Angeles`, webapp access **Anyone** — required for the Twilio webhook)
 - [ ] `.gitignore` — `.clasp.json`, `node_modules/`, `coverage/`
-- [ ] Folder structure: `src/` (shell), `src/core/` (pure)
-- [ ] `package.json` + Jest + `coverageThreshold` at 80% lines/branches (build fails
-      under)
-- [ ] Prove the pipeline: one trivial `src/core/` function + its test, green, with the
-      dual-load export guard and a coverage report
+- [ ] **`.claspignore` + `rootDir: "src"`** — keep `*.test.js` / `jest.config.js` / node_modules
+      off the push (a pushed test file's `require` kills every execution — ADR 006 §12)
+- [ ] **`.gitattributes`** — `* text=auto eol=lf` (no CRLF churn)
+- [ ] Folder structure: `src/` (shell), `src/core/` (pure); tests mirror alongside
+- [ ] `package.json` + Jest + `coverageThreshold` 80% lines/branches (build fails under);
+      shell tested via mocked GAS globals (`PropertiesService`/`UrlFetchApp`/`LockService`/`Utilities`)
+- [ ] Prove the pipeline: one trivial `src/core/*.js` function + its Jest test, green,
+      with the dual-load export guard (`.js` source so Node/Jest load it directly; clasp
+      pushes it as `.gs`) and a coverage report
 - [ ] First commit
 - 🛡 **+ SMEs:** `gas-platform-expert` (manifest, timezone, dual-load runs in GAS)
 
@@ -65,16 +69,21 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 
 ### Chunk 2 — `Watchlist` *(state owner)*
 - [ ] Sole reader/writer of `WATCHLIST` + `PAUSED`; owns the schema; defaults to
-      `SPY, GLD, SLV` when unset; add uppercases + de-dupes; remove is a friendly no-op
-- [ ] **Tests:** default-when-unset; add dedup/uppercase; remove absent; paused get/set;
-      **state isolation** between tests
+      `SPY, GLD, SLV` when unset; add uppercases + de-dupes + **caps at 10** (ADR 007);
+      remove is a friendly no-op; all writes under a `LockService` script lock (ADR 006 §5)
+- [ ] **Tests:** default-when-unset; add dedup/uppercase; **cap refuses the 11th**;
+      remove absent; remove-that-empties; paused get/set; **state isolation** between tests
 - 🛡 **+ SMEs:** `gas-platform-expert`
 
 ### Chunk 3 — `core/Formatter` *(pure — the money rules)*
-- [ ] `quotes → "S&P 7,500 | Gold 4,500 | Silver 70.00"`; SPY/GLD comma no-decimals,
-      SLV exactly 2dp, custom tickers generalize; appends a note for any failed ticker
-- [ ] **Tests (high-value):** each label's format; sub-dollar price; very large price
-      (comma grouping); missing/failed quote; partial-subset note. Target ~100%.
+- [ ] `summaryLine([{ticker,price,ok}]) → "S&P 7,500 | Gold 4,500 | Silver 70.00"` —
+      **ordered array, `ok` = source of truth** (Gap 1 = Option C); display-rules data
+      table (SPY/GLD 0dp, SLV 2dp, custom default 2dp, all comma; **locale-safe grouping**;
+      ADR 006 §10); `ok:false` renders in place as `Label n/a`; owns the whole line incl.
+      the empty-watchlist notice
+- [ ] **Tests (high-value):** each label's format; custom default; sub-dollar; very large
+      (comma grouping); `.005` rounding boundary; NaN/empty → `ok:false` → `n/a`; a single
+      `ok:false`; **all-failed**; and **empty** watchlist (distinct). ~100%.
 - 🛡 **+ SMEs:** `javascript-rigor-expert` (money/float/coercion)
 
 ### Chunk 4 — `core/CommandParser` *(pure — body → intent)*
@@ -85,19 +94,22 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 - 🛡 **+ SMEs:** `spec-conformance-reviewer` (all spec'd commands present)
 
 ### Chunk 5 — `PriceService` *(Alpha Vantage — sole caller)*
-- [ ] Only module that calls Alpha Vantage; `quotesFor(tickers) → { ok, failed }`;
-      per-ticker try/catch; detects the rate-limit `Note`/`Information` envelope; does no
-      formatting
-- [ ] **Tests:** valid GLOBAL_QUOTE parse; rate-limit envelope handled; bad symbol;
-      **one ticker fails, others still return** (partial). `UrlFetchApp` mocked.
+- [ ] Only module that calls Alpha Vantage; `quotesFor(tickers) → ordered [{ticker,price,ok}]`;
+      per-ticker try/catch, **no retries** (ADR 006 §9); NaN/empty price → `ok:false`;
+      **flat 15s spacing** (`MIN_CALL_SPACING_MS`); rate-limit envelope keys
+      (`Note`/`Information`) a **named constant**; does no formatting
+- [ ] **Tests:** valid GLOBAL_QUOTE parse; rate-limit envelope → `ok:false` (per key); bad
+      symbol → `ok:false`; NaN price → `ok:false`; **one fails, others still return**;
+      spacing invoked between calls. Mocks built from a **captured real response** (golden
+      fixture); `UrlFetchApp` + sleep mocked.
 - 🛡 **+ SMEs:** `market-api-expert`, `resilience-reviewer`, `cost-quota-guardian`
 
 ### Chunk 6 — `SmsService` *(Twilio — sole caller)*
-- [ ] Only module that calls Twilio; `send(message)` via REST (E.164, basic auth
-      header); `DEBUG_MODE="true"` logs instead of sending; a send failure logs, doesn't
-      throw
-- [ ] **Tests:** correct REST shape; DEBUG_MODE logs-not-sends; failure logged not
-      thrown; **auth token never logged**. `UrlFetchApp` mocked.
+- [ ] Only module that calls Twilio; `send(message)` via REST (E.164, **scoped API key /
+      subaccount, not the master Auth Token** — ADR 008); `DEBUG_MODE="true"` logs instead
+      of sending; a send failure logs, doesn't throw
+- [ ] **Tests:** correct REST shape; DEBUG_MODE logs-not-sends; failure logged not thrown;
+      **credentials never logged**. `UrlFetchApp` mocked from a **captured real response**.
 - 🛡 **+ SMEs:** `twilio-expert`, `cost-quota-guardian`
 
 ### Chunk 7 — `Scheduler` *(orchestrator + daily alert)*
@@ -109,20 +121,45 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 - 🛡 **+ SMEs:** `resilience-reviewer`, `spec-conformance-reviewer`, `gas-platform-expert`
       (trigger semantics)
 
-### Chunk 8 — `CommandHandler` *(`doPost` + dispatch)*
-- [ ] `doPost(e)`: **authorize `From == RECIPIENT_NUMBER` first**, then parse → dispatch
-      table → reply via `SmsService`; `add` validates via `PriceService` before insert;
-      malformed body → help; replies are REST, never TwiML
-- [ ] **Tests:** unauthorized sender → no action; each command dispatches; `add`
-      validates first; malformed → help; auth runs before any handler
-- 🛡 **+ SMEs:** `twilio-expert` (no-TwiML, webhook), `spec-conformance-reviewer`,
-      `gas-platform-expert` (`doPost` contract) — `security-reviewer` runs loud here
+### Chunk 8a — `CommandHandler` *(`doPost` + dispatch)*
+- [ ] `doPost(e)`: **authorize first** via the layered gate (Chunk 8b), then parse →
+      dispatch table → reply via `SmsService`; `add` runs the **free checks
+      (duplicate / at-cap) BEFORE the paid AV validation**, and branches unknown-symbol
+      vs. can't-reach-AV; `remove` that empties confirms; malformed body → help; replies
+      are REST, never TwiML
+- [ ] **Tests:** unauthorized → silent no-op; each command dispatches; `add`
+      free-checks-before-AV + duplicate + unknown + at-cap; `remove` empties; malformed →
+      help; auth runs before any handler
+- 🛡 **+ SMEs:** `twilio-expert`, `spec-conformance-reviewer`, `gas-platform-expert` —
+      `security-reviewer` runs loud here
+
+### Chunk 8b — Security vault *(ADR 008)*
+- [ ] **Layered gate** (all constant-time): `WEBHOOK_TOKEN` in URL → `From` →
+      `MessageSid` replay store (TTL); auto-lockout after N + `UNLOCK_SECRET` re-arm;
+      **silent 200** on any failure
+- [ ] **Pull-based audit** (numbers hashed): `log` command; single optional "🔒 sealed"
+      notice (no push alerts — that was the spam vector)
+- [ ] **Message auth:** monotonic counter (state) + a **shell signer** appending
+      `[#N TAG]` = `HMAC-SHA256(VERIFIER_KEY,"N|payload")` hex/upper/first-8 (ADR 008 §6)
+      — must match `tools/spazito-verifier.html` (golden-vector test)
+- [ ] **Twilio:** scoped API key / subaccount, not the master Auth Token; 🧑 enable 2FA
+- [ ] **Tests:** token / `From` / replay each reject; lockout seals + unlock re-arms;
+      audit records + redacts; signer tag matches the verifier's known vector; counter
+      increments + persists
+- 🛡 **+ SMEs:** `security-reviewer` (lead), `gas-platform-expert`,
+      `javascript-rigor-expert` (HMAC/encoding), `cost-quota-guardian`
 
 ### Chunk 9 — Deploy + live smoke test 🧑 💰
 - [ ] `clasp deploy` → copy web-app URL
-- [ ] Set all Script Properties (five secrets); wire the Twilio webhook (POST) to the URL
+- [ ] Set all Script Properties (API keys + numbers + `WEBHOOK_TOKEN`, `VERIFIER_KEY`,
+      `UNLOCK_SECRET`); wire the Twilio webhook (POST) to the **token-bearing** URL
 - [ ] `clasp run createTrigger` (once)
 - [ ] 🧑 Smoke test: text `list` → confirm reply; run `testSendNow` → confirm SMS arrives
+- [ ] **Integration-seams checklist** (break points unit tests can't cover): trigger
+      really fires 5pm LA; `.claspignore` held (app loads); real `doPost` payload shape;
+      real Alpha Vantage + Twilio responses match the golden fixtures; layered gate rejects
+      a bad token / wrong `From` / replayed SID; a live `[#N TAG]` verifies in
+      `tools/spazito-verifier.html`
 - 🛡 **Full council final pass + 🧑 David manual verification**
 
 ---
@@ -132,3 +169,6 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 - **Duplicate-send guard** — a `LAST_SENT_DATE` key so a double-firing trigger can't text
   twice. Noted in `SCHEMA.md` as reserved. Add if it proves needed; not worth the state
   on day one.
+- _(Twilio `X-Twilio-Signature` validation was investigated and dropped — GAS web apps
+  can't read request headers, so it's infeasible on this stack. Superseded by the URL
+  bearer token in ADR 008.)_

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spazito Verifier</title>
+<!--
+  SPAZITO MESSAGE VERIFIER  -  fully offline, no network, single file.
+
+  What it does: proves a Spazito price text really came from your bot and wasn't
+  spoofed or altered, and that its sequence number didn't skip or repeat.
+
+  How to trust it:
+    - It makes ZERO network requests. Turn on airplane mode and it still works.
+      (You can read the code below - there is no fetch/XHR/websocket anywhere.)
+    - The crypto is the browser's own audited Web Crypto (HMAC-SHA256).
+    - On load it runs a self-test against a published HMAC-SHA256 test vector and
+      shows PASS/FAIL, so the math proves itself every time you open it.
+    - Your secret key is never sent anywhere. It stays in this page (and, only if
+      you tick "remember", in this browser's local storage on this device).
+
+  Message format it expects (the bot appends this to every text):
+        S&P 7,500 | Gold 4,500 | Silver 70.00 [#47 A3F9C2E1]
+     -> #47        = sequence count
+     -> A3F9C2E1   = HMAC tag = first 8 hex chars, UPPERCASE, of
+                     HMAC-SHA256( secret , "47|S&P 7,500 | Gold 4,500 | Silver 70.00" )
+        i.e. canonical input = <count> + "|" + <the text before the [ ... ] block, trimmed>
+-->
+<style>
+  :root {
+    --bg:#0f1115; --card:#171a21; --line:#2a2f3a; --ink:#e6e9ef; --dim:#9aa4b2;
+    --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#58a6ff; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:24px; }
+  .wrap { max-width:640px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 2px; }
+  .sub { color:var(--dim); font-size:13px; margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  label { display:block; font-size:13px; color:var(--dim); margin:0 0 6px; }
+  input[type=password], input[type=text], textarea {
+    width:100%; background:#0d1017; color:var(--ink); border:1px solid var(--line);
+    border-radius:8px; padding:10px 12px; font-family:var(--mono); font-size:14px; }
+  textarea { min-height:84px; resize:vertical; }
+  .row { display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .row.small { font-size:13px; color:var(--dim); }
+  button { background:var(--accent); color:#0b0f14; border:0; border-radius:8px;
+    padding:11px 18px; font-size:15px; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--dim); border:1px solid var(--line); font-weight:500; padding:8px 12px; }
+  .result { border-radius:10px; padding:16px; margin-top:14px; display:none; }
+  .result.show { display:block; }
+  .result h2 { margin:0 0 6px; font-size:18px; }
+  .result .detail { font-size:13px; font-family:var(--mono); color:var(--dim); word-break:break-all; }
+  .ok  { background:rgba(63,185,80,.12);  border:1px solid var(--ok); }
+  .bad { background:rgba(248,81,73,.12);  border:1px solid var(--bad); }
+  .warn{ background:rgba(210,153,34,.12); border:1px solid var(--warn); }
+  .tint-ok  h2 { color:var(--ok); }  .tint-bad h2 { color:var(--bad); }  .tint-warn h2 { color:var(--warn); }
+  .seq { margin-top:10px; font-size:13px; }
+  .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); }
+  details { margin-top:8px; } summary { cursor:pointer; color:var(--accent); font-size:13px; }
+  details pre { white-space:pre-wrap; font-size:12px; color:var(--dim); }
+  code { font-family:var(--mono); color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Spazito Verifier</h1>
+  <p class="sub">Offline check that a price text is genuinely from your bot &middot;
+     <span id="offline" class="badge">no network &middot; self-test&hellip;</span></p>
+
+  <div class="card">
+    <label for="secret">Your secret key <span style="color:var(--dim)">(given to you out-of-band &mdash; never typed into anything online)</span></label>
+    <input id="secret" type="password" autocomplete="off" spellcheck="false" placeholder="paste your key">
+    <div class="row small">
+      <label style="margin:0"><input type="checkbox" id="remember"> Remember on this device</label>
+      <button class="ghost" id="forget" type="button">Forget key</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label for="msg">Paste the text you received</label>
+    <textarea id="msg" spellcheck="false" placeholder="S&amp;P 7,500 | Gold 4,500 | Silver 70.00 [#47 A3F9C2E1]"></textarea>
+    <div class="row"><button id="verify" type="button">Verify</button></div>
+
+    <div id="result" class="result">
+      <h2 id="verdict"></h2>
+      <div class="seq" id="seq"></div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </div>
+
+  <details>
+    <summary>How this works &amp; how to trust it</summary>
+    <pre>
+This page makes NO network requests - verify by reading the source, or run it in
+airplane mode. Your key never leaves this device.
+
+Each text ends with  [#N TAG]  where TAG is the first 8 hex characters (uppercase)
+of  HMAC-SHA256( key , "N|PAYLOAD" ) ,  and PAYLOAD is the message text with the
+[#N TAG] block removed and trimmed. The bot and this tool compute the exact same
+thing; if the codes match, the text is authentic and unaltered. If any character
+of the prices changed, or the code was faked without the key, it fails.
+
+The # count must climb by 1 each weekday. A repeat = replay; a jump = missed texts.
+
+Self-test: on load this page computes a known HMAC-SHA256 test vector and shows
+PASS only if the browser's crypto returns the correct answer.
+    </pre>
+  </details>
+</div>
+
+<script>
+"use strict";
+// ---- crypto helpers (browser-native Web Crypto; no dependencies, no network) ----
+const enc = new TextEncoder();
+function hex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase(); }
+async function hmacHex(key, msg){
+  const k = await crypto.subtle.importKey("raw", enc.encode(key), {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
+  return hex(await crypto.subtle.sign("HMAC", k, enc.encode(msg)));
+}
+// constant-time-ish string compare (no early exit on mismatch)
+function ctEqual(a,b){ if(a.length!==b.length) return false; let r=0; for(let i=0;i<a.length;i++) r|=a.charCodeAt(i)^b.charCodeAt(i); return r===0; }
+
+// ---- message parsing: pull [#N TAG] off the end, rebuild canonical "N|payload" ----
+function parseMessage(text){
+  const m = text.match(/\[#(\d+)\s+([0-9A-Fa-f]{8})\]\s*$/);
+  if(!m) return null;
+  const n = parseInt(m[1],10);
+  const tag = m[2].toUpperCase();
+  const payload = text.slice(0, m.index).trim();
+  return { n, tag, payload, canonical: n + "|" + payload };
+}
+
+// ---- persistence (this device only, opt-in) ----
+const LS_SECRET="spz_secret_v1", LS_LASTN="spz_lastN_v1";
+const $ = id => document.getElementById(id);
+
+function loadSecret(){ const s = localStorage.getItem(LS_SECRET); if(s){ $("secret").value=s; $("remember").checked=true; } }
+function saveSecretMaybe(){ if($("remember").checked) localStorage.setItem(LS_SECRET, $("secret").value); else localStorage.removeItem(LS_SECRET); }
+$("forget").onclick = () => { localStorage.removeItem(LS_SECRET); $("secret").value=""; $("remember").checked=false; };
+function getLastN(){ const v = localStorage.getItem(LS_LASTN); return v===null?null:parseInt(v,10); }
+
+function paint(kind, verdict, seqHtml, detail){
+  const r=$("result");
+  r.className = "result show " + kind + " tint-" + kind;
+  $("verdict").textContent = verdict;
+  $("seq").innerHTML = seqHtml||"";
+  $("detail").textContent = detail||"";
+}
+
+$("verify").onclick = async () => {
+  saveSecretMaybe();
+  const secret = $("secret").value.trim();
+  const text = $("msg").value;
+  if(!secret){ paint("warn","Enter your key first","",""); return; }
+  const p = parseMessage(text);
+  if(!p){ paint("warn","Couldn't find a [#N CODE] block","","Paste the full text exactly as received, including the [ ... ] at the end."); return; }
+
+  const expected = (await hmacHex(secret, p.canonical)).slice(0,8);
+  const authentic = ctEqual(expected, p.tag);
+
+  // sequence check
+  const last = getLastN(); let seq="";
+  if(last===null){ seq = '<span class="badge">first message on this device &mdash; count #'+p.n+' noted</span>'; }
+  else if(p.n===last){ seq = '&#9888;&#65039; <b>replay</b> &mdash; this is count #'+p.n+', same as the last one you saw.'; }
+  else if(p.n<last){ seq = '&#9888;&#65039; <b>older message</b> &mdash; #'+p.n+' is behind your last seen #'+last+'.'; }
+  else if(p.n===last+1){ seq = '&#10003; sequence #'+p.n+' follows #'+last+' as expected.'; }
+  else { seq = '&#9888;&#65039; <b>gap</b> &mdash; jumped from #'+last+' to #'+p.n+' ('+(p.n-last-1)+' text(s) missed).'; }
+
+  if(authentic){
+    // advance the counter only for a genuine, forward message
+    if(last===null || p.n>last) localStorage.setItem(LS_LASTN, String(p.n));
+    paint("ok", "✅ Authentic", seq, "verified: HMAC-SHA256 tag matches for count #"+p.n);
+  } else {
+    paint("bad", "❌ NOT verified", seq,
+      "expected "+expected+" but the text carried "+p.tag+" — wrong key, or the message was altered/spoofed.");
+  }
+};
+
+// ---- self-test: known vector HMAC-SHA256("key","The quick brown fox jumps over the lazy dog") ----
+(async () => {
+  const badge = $("offline");
+  try {
+    if(!crypto || !crypto.subtle) throw new Error("no-webcrypto");
+    const h = await hmacHex("key","The quick brown fox jumps over the lazy dog");
+    const ok = h.startsWith("F7BC83F430538424B13298E6AA6FB143");
+    badge.textContent = ok ? "no network · self-test PASS" : "self-test FAIL — do not trust";
+    badge.style.color = ok ? "var(--ok)" : "var(--bad)";
+    badge.style.borderColor = ok ? "var(--ok)" : "var(--bad)";
+  } catch(e){
+    badge.textContent = "crypto unavailable — open in a modern browser";
+    badge.style.color = "var(--bad)"; badge.style.borderColor = "var(--bad)";
+  }
+})();
+loadSecret();
+</script>
+</body>
+</html>

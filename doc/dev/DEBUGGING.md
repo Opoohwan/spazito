@@ -74,12 +74,16 @@ Work down this list — it's ordered by likelihood:
 Expected behavior when a single ticker fails — the message still sends with the rest
 and notes the failure (partial-send, ADR 006 §9). Likely causes:
 
-- **Alpha Vantage rate limit.** Free tier is **25 requests/day, 5/minute.** A large
-  watchlist or repeated `testSendNow` runs can exhaust it. The API returns a `Note`/
-  `Information` envelope instead of a quote; `PriceService` logs a `console.warn`.
+- **Alpha Vantage rate limit.** Free tier is **25 requests/day, 5/minute.** The daily run
+  spaces its calls (15s apart) and the watchlist is capped at 10 to stay within both
+  limits (ADR 007) — if you still see `Note`/`Information` rate-limit envelopes, check the
+  spacing and cap, or whether `testSendNow` was run repeatedly and drained the daily 25.
+  `PriceService` logs a `console.warn` on a rate-limit envelope.
 - **Bad symbol.** A custom ticker added via SMS that Alpha Vantage doesn't recognize.
   (`add` is supposed to validate before inserting — if a bad symbol got in, check that
   validation path.)
+- **Market holiday.** On a closed-market weekday the trigger still fires; Alpha Vantage
+  returns the last close, so prices are prior-close, not live. Expected, not a bug.
 
 ### "I texted a command and nothing happened / no reply"
 

@@ -8,6 +8,9 @@ secrets.json
 # Node modules if clasp is installed locally
 node_modules/
 
+# Jest coverage output
+coverage/
+
 # OS noise
 .DS_Store
 Thumbs.db

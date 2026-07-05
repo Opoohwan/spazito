@@ -13,6 +13,8 @@ the record.
 | [004](../decisions/004-state-in-propertiesservice.md) | State in `PropertiesService`, no DB | ~2 values for one recipient; `Watchlist` is the sole owner; no external dependency |
 | [005](../decisions/005-functional-core-imperative-shell.md) | Functional Core, Imperative Shell | Pure logic testable in Node; "no bleed" becomes structural, not a code-review hope |
 | [006](../decisions/006-apps-script-patterns.md) | Apps Script Architecture & Quality Standard | The strict, `grep`-checkable no-bleed rules + granularity contract + What-Never-To-Do |
+| [007](../decisions/007-alpha-vantage-budget.md) | Alpha Vantage free-tier: rate spacing + watchlist cap | 25/day·5/min is a hard ceiling — 10-ticker cap, 15s call spacing, `add` costs a call |
+| [008](../decisions/008-security-defense-in-depth.md) | Security & defense-in-depth | Layered webhook gate, pull-based audit, recipient-verifiable `[#N TAG]` messages, split-channel key delivery |
 
 ---
 

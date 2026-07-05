@@ -56,7 +56,7 @@ missing named concept — name it before writing it.
                                         ▼
                               CommandHandler.doPost(e)     ── SHELL, entrypoint
                                         │
-        1. authorize: e.parameter.From == Config.recipient()   ◄── FIRST, always
+        1. authorize: layered gate (URL token → From → MessageSid replay)  ◄── FIRST, ADR 008
         2. parse:     CommandParser.parse(Body)   ── core, pure
         3. dispatch:  COMMANDS[intent.type](arg)  ── table, not a switch
         4. reply:     SmsService.send(confirmation)
@@ -74,10 +74,11 @@ Condensed from ADR 006 §4 (the No-Bleed Boundary Map). Each module owns one thi
 | `Watchlist` | shell | Own all **mutable state** (tickers, paused) and its schema |
 | `PriceService` | shell | The **only** caller of Alpha Vantage |
 | `SmsService` | shell | The **only** caller of Twilio |
-| `core/Formatter` | core | Quote data → the message string (money-formatting rules) |
+| `core/Formatter` | core | Quote data → the message string (money rules; empty & all-failed cases) |
 | `core/CommandParser` | core | Raw SMS body → a parsed command intent |
+| `core/Replies` | core | Command reply / help / error copy strings |
 | `Scheduler` | shell | Orchestrate the daily run — nothing else |
-| `CommandHandler` | shell | `doPost`: authorize → parse → dispatch → reply |
+| `CommandHandler` | shell | `doPost`: layered auth gate (ADR 008) → parse → dispatch → reply |
 
 ---
 
@@ -96,11 +97,16 @@ Watchlist.isPaused()?  ── yes ──►  return, send nothing
 Watchlist.tickers()               → ["SPY","GLD","SLV"] (or custom list)
   │
   ▼
-PriceService.quotesFor(tickers)   → per-ticker try/catch; one failure ≠ whole failure
-  │                                  returns { ok:[{ticker,price}], failed:[ticker] }
+PriceService.quotesFor(tickers)   → per-ticker try/catch; spaces calls 15s to stay
+  │                                  under 5/min (ADR 007); NO retries; one failure ≠
+  │                                  whole failure; returns ordered [{ticker,price,ok}]
   ▼
-Formatter.summaryLine(quotes.ok)  → "S&P 7,500 | Gold 4,500 | Silver 70.00"
-  │                                  (pure; unit-tested; appends note if any failed)
+Formatter.summaryLine(quotes)     → "S&P 7,500 | Gold 4,500 | Silver 70.00"
+  │                                  (pure; ordered [{ticker,price,ok}], ok = source of
+  │                                   truth; ok:false renders in place as "Label n/a")
+  ▼
+sign (shell)                      → append [#N TAG] auth block (ADR 008 §6)
+  │
   ▼
 SmsService.send(message)          → Twilio REST  (or logs, if DEBUG_MODE)
 ```
@@ -119,8 +125,8 @@ Twilio POSTs form-encoded { From, Body } to the web-app URL
 CommandHandler.doPost(e)
   │
   ▼
-Authorize:  e.parameter.From === Config.recipient()?
-  │  no  ──►  do nothing, return empty 200  (no informative reply to strangers)
+Authorize:  layered gate — URL token → From == RECIPIENT_NUMBER → MessageSid replay (ADR 008)
+  │  fail ──►  silent 200, zero side effects  (no reply, no oracle to strangers)
   │ yes
   ▼
 CommandParser.parse(e.parameter.Body)   → { type:"add", arg:"TSLA" }   (pure)

@@ -60,9 +60,9 @@ Condensed from the README. Order matters.
 Commands follow the dispatch-table pattern (ADR 006 §6) — never a growing `switch`.
 Three small edits:
 
-1. **Parse it** (core, pure) — add a case in `core/CommandParser.gs` that maps the raw
+1. **Parse it** (core, pure) — add a case in `core/CommandParser.js` that maps the raw
    body to an intent: `"snooze 3"` → `{ type: "snooze", arg: "3" }`.
-2. **Handle it** (shell) — add one entry to the `COMMANDS` table in `CommandHandler.gs`.
+2. **Handle it** (shell) — add one entry to the `COMMANDS` table in `CommandHandler.js`.
    The handler is a few lines; it delegates to the module that owns the work
    (`Watchlist`, `PriceService`, …). It does not contain business logic itself.
 3. **Test the parse** — add a unit test in the `CommandParser` test file covering the
@@ -75,28 +75,31 @@ table entry.
 
 ## Adding or changing a ticker display rule
 
-Money formatting is pure logic and lives entirely in `core/Formatter.gs` (ADR 006 §10).
+Money formatting is pure logic and lives entirely in `core/Formatter.js` (ADR 006 §10).
 Never add a `.toFixed` or comma-grouping call to a shell module.
 
 1. Add or adjust the rule in `Formatter` (e.g. a new label, a different decimal count).
 2. Add a unit test covering the edge cases: a sub-dollar price, an unusually large
    price (comma grouping), the exact decimal rule, and a missing/failed quote.
 
-Confirmed base rules: SPY→"S&P" and GLD→"Gold" use thousands-comma, no decimals;
-SLV→"Silver" uses exactly two decimals; custom tickers generalize as `Ticker Price`.
+Rules (a data table in `Formatter`): SPY→"S&P" and GLD→"Gold" use thousands-comma,
+0 decimals; SLV→"Silver" uses 2 decimals; the default rule for any custom ticker is
+symbol label + 2 decimals; a failed ticker renders in place as `Label n/a`.
 
 ---
 
 ## Testing
 
-- **Core (Node).** `Formatter` and `CommandParser` are pure — no GAS deps — so they can
-  be exercised by a Node test runner without deploying. *The Node harness itself is a
-  Phase-2 dev task* (the `.gs` core is plain JS; a small loader or a shared build step
-  exposes it to Node). Until then, exercise the core via `test*` functions in GAS.
+- **Core (Node).** `Formatter` and `CommandParser` are pure — no GAS deps — so they run
+  in Node under Jest with no deploy. The harness is stood up in **Chunk 0** (see
+  ROADMAP), *before* any feature code: the `.js` core carries the dual-load guard
+  (`if (typeof module !== 'undefined') module.exports = {...}`) so the same file loads in
+  both GAS and Node. Coverage floor is 80% lines/branches, enforced by config.
 - **Shell (GAS).** Smoke-test the effectful flow with `testSendNow` (runs the full
   daily-alert path immediately, bypassing the trigger) and `DEBUG_MODE="true"` (logs
-  instead of sending — no Twilio spend, no Alpha Vantage quota burned on formatting
-  work).
+  instead of sending — no Twilio spend). Note `DEBUG_MODE` gates Twilio only; the run
+  still calls Alpha Vantage and spends quota — to test formatting with zero spend,
+  unit-test `Formatter` in Node.
 - **State isolation.** Any test touching `Watchlist` must leave `WATCHLIST` and
   `PAUSED` as it found them — never pollute the real state.
 - Every core function has at least one test that would fail if its contract broke
