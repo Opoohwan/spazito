@@ -45,16 +45,13 @@ const Config = {
     'UNLOCK_SECRET',       // re-arms the bot after auto-lockout (ADR 008 §3)
   ],
 
-  // TWILIO_AUTH_TOKEN holds ONE of two different Twilio secrets (SCHEMA.md
-  // has the step-by-step):
-  //   - Hardened path (ADR 008 §5, preferred): create a scoped API key in the
-  //     Twilio console, set TWILIO_API_KEY_SID (optional key, "SK…") to its
-  //     SID, and put the API key's SECRET here — NOT the master Auth Token.
-  //   - Fallback path: leave TWILIO_API_KEY_SID unset and put the master
-  //     Auth Token here. SmsService warns in the log when running this way
-  //     (decided at the Chunk 1 gate: allowed for easy onboarding, never silent).
+  // TWILIO_AUTH_TOKEN holds ONE of two different Twilio secrets — the
+  // scoped API key's SECRET (hardened path, ADR 008 §5, with
+  // TWILIO_API_KEY_SID set) or the master Auth Token (fallback; SmsService
+  // warns in the log when running that way). SCHEMA.md is the canonical
+  // step-by-step for setting this up; SmsService.js explains the why.
   //
-  // Other optional keys (Spazito runs without them):
+  // Optional keys (Spazito runs without them):
   //   DEBUG_MODE — literal string "true" makes SmsService LOG outbound texts
   //   instead of sending. Gates Twilio only; Alpha Vantage calls still happen.
 

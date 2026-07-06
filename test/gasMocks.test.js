@@ -115,6 +115,11 @@ describe('installUtilities fidelity', () => {
     expect(Date.now() - before).toBeLessThan(1000); // did not really wait
     expect(recorder.sleeps).toEqual([15000, 15000]);
   });
+
+  test('base64Encode matches real GAS output (hardcoded vector, not a Buffer round-trip)', () => {
+    installUtilities();
+    expect(global.Utilities.base64Encode('user:pass')).toBe('dXNlcjpwYXNz');
+  });
 });
 
 describe('install/uninstall lifecycle', () => {

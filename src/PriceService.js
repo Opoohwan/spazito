@@ -164,10 +164,11 @@ const PriceService = {
       }
 
       // Request rejected (bad/revoked key, malformed call). The message
-      // text is safe AND valuable to log: it names the problem ("apikey is
-      // invalid...") and contains no secret value.
+      // text is valuable to log — it names the problem ("apikey is
+      // invalid...") — but it goes through the Redactor like every other
+      // error string, because we don't control what the API embeds in it.
       if (this.ERROR_MESSAGE_KEY in body) {
-        console.warn('Alpha Vantage rejected the request for ' + ticker + ': ' + body[this.ERROR_MESSAGE_KEY]);
+        console.warn('Alpha Vantage rejected the request for ' + ticker + ': ' + Redactor.scrub(body[this.ERROR_MESSAGE_KEY]));
         return this._failure(ticker, this.REASON.API_ERROR);
       }
 
@@ -198,20 +199,11 @@ const PriceService = {
       // Network failure or JSON parse failure — this ticker is n/a; the
       // rest of the run continues. Real GAS network exceptions can embed
       // the full request URL (key included) in e.message, so it is
-      // scrubbed before logging — never trust an error string.
-      console.warn('Alpha Vantage fetch failed for ' + ticker + ': ' + this._scrub(e && e.message));
+      // scrubbed (core/Redactor — the one owner of log redaction) before
+      // logging — never trust an error string.
+      console.warn('Alpha Vantage fetch failed for ' + ticker + ': ' + Redactor.scrub(e && e.message));
       return this._failure(ticker, this.REASON.FETCH_ERROR);
     }
-  },
-
-  /**
-   * Redact anything secret-bearing from an error string before it can
-   * reach a log (ADR 006 §11): apikey parameter values and whole URLs.
-   */
-  _scrub(text) {
-    return String(text)
-      .replace(/apikey=[^&\s"']*/gi, 'apikey=REDACTED')
-      .replace(/https?:\/\/\S*/gi, '[url redacted]');
   },
 
   /** The one failure shape (keeps every return site identical). */

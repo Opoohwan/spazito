@@ -74,6 +74,16 @@ Condensed from the README. Order matters.
 8. Smoke test: text `list` → confirm the reply; run `testSendNow` → confirm the SMS
    arrives (or, with `DEBUG_MODE="true"`, confirm the message is logged)
 
+**Twilio trial-account gotchas (before the account is upgraded):**
+- A trial account can only text **verified** numbers. Verify the recipient's number in
+  the Twilio console first, or every send fails with error **21608** in the execution
+  log.
+- Twilio **prepends "Sent from your Twilio trial account - " to every message body** on
+  trial. That prefix lands inside the span the `[#N TAG]` signature covers, so the
+  offline verifier will report **every message as unverified until the account leaves
+  trial**. This is Twilio mutating the body, not a Spazito bug — upgrade before
+  provisioning the verifier key, or warn the recipient that verification starts then.
+
 **Why the web app is deliberately public:** `src/appsscript.json` sets
 `"access": "ANYONE_ANONYMOUS"` + `"executeAs": "USER_DEPLOYING"`. Twilio cannot log in
 to Google, so the webhook endpoint must accept anonymous POSTs, and executing as the

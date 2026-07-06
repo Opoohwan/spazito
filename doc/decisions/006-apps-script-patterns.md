@@ -131,12 +131,13 @@ only reach across the boundaries listed. Anything else is bleed.
 |---|---|---|---|---|
 | `Config` | shell | Read + validate all **secrets** from Script Properties | `PropertiesService` (secrets only) | Hold app state; format; fetch; send |
 | `Watchlist` | shell | Own all **mutable state** (tickers, paused) + its schema | `PropertiesService` (state only) | Read secrets; fetch; format; send |
-| `PriceService` | shell | The **only** caller of Alpha Vantage | `UrlFetchApp`, `Config`, `Utilities` (sleep — the §9/ADR 007 call spacing) | Format prices; send SMS; touch state |
-| `SmsService` | shell | The **only** caller of Twilio | `UrlFetchApp`, `Config` | Decide *what* or *when* to send; build message copy |
+| `PriceService` | shell | The **only** caller of Alpha Vantage | `UrlFetchApp`, `Config`, `Utilities` (sleep — the §9/ADR 007 call spacing), `Redactor` | Format prices; send SMS; touch state |
+| `SmsService` | shell | The **only** caller of Twilio | `UrlFetchApp`, `Config`, `Utilities` (base64Encode — the Basic-auth header), `Redactor` | Decide *what* or *when* to send; build message copy |
 | `Formatter` | core | Turn quote data into the daily message string (incl. empty & all-failed cases) | (nothing) | Any I/O whatsoever |
 | `CommandParser` | core | Turn a raw SMS body into a parsed intent | (nothing) | Any I/O whatsoever |
 | `Replies` | core | Hold command reply / help / error copy strings | (nothing) | Any I/O; price formatting (that's `Formatter`) |
 | `Tickers` | core | Canonical ticker text rules (normalize once, at the shell boundary) | (nothing) | Any I/O whatsoever |
+| `Redactor` | core | Scrub secret-shaped substrings from strings before they reach a log (§11) | (nothing) | Any I/O whatsoever |
 | `Scheduler` | shell | Orchestrate the daily run | `Watchlist`, `PriceService`, `Formatter`, `SmsService` | Fetch, format, persist, or send *itself* |
 | `CommandHandler` | shell | `doPost` entry; authorize, parse, dispatch, reply | `Config`, `CommandParser`, `Replies`, `Watchlist`, `PriceService`, `SmsService` | Contain command business logic inline; format prices |
 

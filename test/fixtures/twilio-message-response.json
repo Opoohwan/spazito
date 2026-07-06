@@ -1,0 +1,38 @@
+{
+  "_comment": "Golden fixture: Twilio Messages API response shapes. Built from the documented API contract; Chunk 9's integration checklist verifies a live capture matches this shape and refreshes it if not. Tests must not invent their own response objects — they build from this. All values are obvious fakes (555 numbers, fake SIDs).",
+  "success": {
+    "sid": "SMfake00000000000000000000000000",
+    "date_created": "Sat, 04 Jul 2026 00:00:00 +0000",
+    "date_updated": "Sat, 04 Jul 2026 00:00:00 +0000",
+    "date_sent": null,
+    "account_sid": "ACfake0000000000000000000000000000",
+    "to": "+17075559876",
+    "from": "+15095551234",
+    "body": "S&P 7,500 | Gold 4,500 | Silver 70.00",
+    "status": "queued",
+    "num_segments": "1",
+    "direction": "outbound-api",
+    "price": null,
+    "price_unit": "USD",
+    "error_code": null,
+    "error_message": null
+  },
+  "invalidToNumber": {
+    "code": 21211,
+    "message": "The 'To' number +17075559876 is not a valid phone number.",
+    "more_info": "https://www.twilio.com/docs/errors/21211",
+    "status": 400
+  },
+  "authError": {
+    "code": 20003,
+    "message": "Authentication Error - invalid username",
+    "more_info": "https://www.twilio.com/docs/errors/20003",
+    "status": 401
+  },
+  "trialUnverified": {
+    "code": 21608,
+    "message": "The number +17075559876 is unverified. Trial accounts cannot send messages to unverified numbers; verify +17075559876 at twilio.com/user/account/phone-numbers/verified, or purchase a Twilio number to send messages to unverified numbers.",
+    "more_info": "https://www.twilio.com/docs/errors/21608",
+    "status": 400
+  }
+}

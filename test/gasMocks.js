@@ -116,14 +116,20 @@ function installUrlFetchApp(respond) {
 }
 
 /**
- * Install a fake global Utilities with a recorded (non-blocking) sleep —
- * tests assert call spacing without actually waiting 15 seconds.
+ * Install a fake global Utilities:
+ *   - sleep is recorded (non-blocking) so tests assert call spacing without
+ *     actually waiting 15 seconds;
+ *   - base64Encode mirrors real GAS (standard base64 of the UTF-8 bytes),
+ *     which SmsService uses to build the Twilio Basic-auth header.
  */
 function installUtilities() {
   const recorder = { sleeps: [] };
   installGlobal('Utilities', {
     sleep(ms) {
       recorder.sleeps.push(ms);
+    },
+    base64Encode(text) {
+      return Buffer.from(String(text), 'utf8').toString('base64');
     },
   });
   return recorder;
