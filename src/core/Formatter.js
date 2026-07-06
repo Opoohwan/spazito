@@ -68,6 +68,21 @@ const Formatter = {
   },
 
   /**
+   * True when quotes were attempted and EVERY one failed — the caller's
+   * signal that the data source itself is down/throttled (it logs an
+   * error; the n/a line still goes out). Lives here, not in Scheduler,
+   * because Formatter owns ok-semantics: "what counts as failed" must be
+   * decided in exactly one module or the rendering and the alarm drift
+   * apart (Chunk 7 gate). An EMPTY list is NOT all-failed — nothing was
+   * attempted (§9's distinct-states rule).
+   */
+  allFailed(quotes) {
+    return Array.isArray(quotes)
+      && quotes.length > 0
+      && quotes.every((quote) => !quote || quote.ok !== true);
+  },
+
+  /**
    * One "Label 1,234.56" (or "Label n/a") segment for one quote.
    */
   _segment(quote) {

@@ -70,7 +70,9 @@ Condensed from the README. Order matters.
    runtime state, not source. The reliable path: `clasp open`, select `createTrigger`
    in the editor's function dropdown, click **Run**. (`clasp run createTrigger` does
    the same but needs extra GCP setup and was renamed `run-function` in clasp 3.x —
-   treat it as the optional path, not the required one.)
+   treat it as the optional path, not the required one.) **First run will show a
+   Google authorization prompt** — trigger management needs the `script.scriptapp`
+   OAuth scope; click through and re-run if it stopped at the consent screen.
 8. Smoke test: text `list` → confirm the reply; run `testSendNow` → confirm the SMS
    arrives (or, with `DEBUG_MODE="true"`, confirm the message is logged)
 

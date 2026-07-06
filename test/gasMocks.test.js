@@ -122,6 +122,27 @@ describe('installUtilities fidelity', () => {
   });
 });
 
+describe('installScriptApp fidelity', () => {
+  const { installScriptApp } = require('./gasMocks');
+
+  test('the fluent chain newTrigger→timeBased→onWeekDay→atHour→create records the spec', () => {
+    const recorder = installScriptApp();
+    global.ScriptApp.newTrigger('fn').timeBased().onWeekDay(global.ScriptApp.WeekDay.MONDAY).atHour(17).create();
+    expect(recorder.created).toEqual([{ handler: 'fn', day: 'MONDAY', hour: 17 }]);
+  });
+
+  test('the trigger list is LIVE: creations appear, deletions disappear (self-verification works)', () => {
+    installScriptApp({ existingTriggers: ['old'] });
+    const [oldTrigger] = global.ScriptApp.getProjectTriggers();
+    global.ScriptApp.deleteTrigger(oldTrigger);
+    expect(global.ScriptApp.getProjectTriggers()).toHaveLength(0);
+    global.ScriptApp.newTrigger('fresh').timeBased().onWeekDay('MONDAY').atHour(1).create();
+    const after = global.ScriptApp.getProjectTriggers();
+    expect(after).toHaveLength(1);
+    expect(after[0].getHandlerFunction()).toBe('fresh');
+  });
+});
+
 describe('install/uninstall lifecycle', () => {
   test('installPropertiesService exposes the store through the global', () => {
     installPropertiesService({ A: '1' });

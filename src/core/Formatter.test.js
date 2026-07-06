@@ -173,6 +173,27 @@ describe('empty watchlist — a distinct state, not a failure', () => {
   });
 });
 
+describe('allFailed — the run-outcome classifier (one owner of ok-semantics)', () => {
+  test('true only when quotes were attempted and every one failed', () => {
+    expect(Formatter.allFailed([failed('SPY'), failed('GLD')])).toBe(true);
+  });
+
+  test('one success anywhere means not all-failed (partial send)', () => {
+    expect(Formatter.allFailed([failed('SPY'), q('GLD', '4500')])).toBe(false);
+  });
+
+  test('empty is NOT all-failed — nothing was attempted (distinct states)', () => {
+    expect(Formatter.allFailed([])).toBe(false);
+    expect(Formatter.allFailed(null)).toBe(false);
+    expect(Formatter.allFailed(undefined)).toBe(false);
+  });
+
+  test('agrees with rendering: ok must be exactly true, malformed slots count as failed', () => {
+    expect(Formatter.allFailed([{ ticker: 'SPY', price: '7500', ok: 'false' }])).toBe(true);
+    expect(Formatter.allFailed([null])).toBe(true);
+  });
+});
+
 describe('the rules table itself', () => {
   test('is frozen — display rules change by edit + test, never at runtime', () => {
     expect(Object.isFrozen(Formatter.DISPLAY_RULES)).toBe(true);

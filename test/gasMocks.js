@@ -136,6 +136,62 @@ function installUtilities() {
 }
 
 /**
+ * Install a fake global ScriptApp for trigger-management tests. Fakes the
+ * fluent builder chain Scheduler uses:
+ *   newTrigger(fn).timeBased().onWeekDay(day).atHour(h).create()
+ * Returns a recorder: { deleted: [handlerNames], created: [{handler, day, hour}] }.
+ * `existingTriggers` seeds getProjectTriggers() with fake triggers by
+ * handler-function name.
+ */
+function installScriptApp({ existingTriggers = [] } = {}) {
+  const recorder = { deleted: [], created: [] };
+  // LIVE list, like the real service: deleteTrigger removes from it and
+  // create() adds to it, so code that re-reads getProjectTriggers() to
+  // verify its own work (Scheduler.installTrigger does) sees reality.
+  let triggers = existingTriggers.map((handlerName) => ({
+    getHandlerFunction: () => handlerName,
+  }));
+  installGlobal('ScriptApp', {
+    WeekDay: Object.freeze({
+      MONDAY: 'MONDAY',
+      TUESDAY: 'TUESDAY',
+      WEDNESDAY: 'WEDNESDAY',
+      THURSDAY: 'THURSDAY',
+      FRIDAY: 'FRIDAY',
+      SATURDAY: 'SATURDAY',
+      SUNDAY: 'SUNDAY',
+    }),
+    getProjectTriggers: () => [...triggers],
+    deleteTrigger(trigger) {
+      recorder.deleted.push(trigger.getHandlerFunction());
+      triggers = triggers.filter((t) => t !== trigger);
+    },
+    newTrigger(handlerName) {
+      const spec = { handler: handlerName };
+      return {
+        timeBased: () => ({
+          onWeekDay: (day) => {
+            spec.day = day;
+            return {
+              atHour: (hour) => {
+                spec.hour = hour;
+                return {
+                  create: () => {
+                    recorder.created.push({ ...spec });
+                    triggers.push({ getHandlerFunction: () => spec.handler });
+                  },
+                };
+              },
+            };
+          },
+        }),
+      };
+    },
+  });
+  return recorder;
+}
+
+/**
  * Install any fake under any global name, through the same teardown
  * registry. This is how tests provide SHELL collaborators (Config,
  * Watchlist, ...) to the module under test — mirroring GAS's shared global
@@ -157,6 +213,7 @@ module.exports = {
   installLockService,
   installUrlFetchApp,
   installUtilities,
+  installScriptApp,
   installFake,
   uninstallGasGlobals,
 };

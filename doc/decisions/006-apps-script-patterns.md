@@ -112,9 +112,10 @@ const PriceService = {
 };
 ```
 
-**Invariant:** No bare global `function foo()` except the three kinds GAS *requires* to
+**Invariant:** No bare global `function foo()` except the four kinds GAS *requires* to
 be global: web-app entrypoints (`doPost`, `doGet`), trigger targets (e.g.
-`runDailyAlert`), and manual test entrypoints (`testSendNow`, `test*`). Everything else
+`runDailyAlert`), manual test entrypoints (`testSendNow`, `test*`), and one-time
+admin/setup entrypoints run by hand from the editor (`createTrigger`). Everything else
 is a method on its module object.
 
 **Invariant:** A method prefixed `_` is module-private. No other module may call it.
@@ -138,7 +139,7 @@ only reach across the boundaries listed. Anything else is bleed.
 | `Replies` | core | Hold command reply / help / error copy strings | (nothing) | Any I/O; price formatting (that's `Formatter`) |
 | `Tickers` | core | Canonical ticker text rules (normalize once, at the shell boundary) | (nothing) | Any I/O whatsoever |
 | `Redactor` | core | Scrub secret-shaped substrings from strings before they reach a log (§11) | (nothing) | Any I/O whatsoever |
-| `Scheduler` | shell | Orchestrate the daily run | `Watchlist`, `PriceService`, `Formatter`, `SmsService` | Fetch, format, persist, or send *itself* |
+| `Scheduler` | shell | Orchestrate the daily run + own the time trigger | `Watchlist`, `PriceService`, `Formatter`, `SmsService`, `Config` (validate-for-alert, §8), `Redactor` (log scrub, §11), `ScriptApp` (trigger install) | Fetch, format, persist, or send *itself* |
 | `CommandHandler` | shell | `doPost` entry; authorize, parse, dispatch, reply | `Config`, `CommandParser`, `Replies`, `Watchlist`, `PriceService`, `SmsService` | Contain command business logic inline; format prices |
 
 **Invariant:** `PriceService` is the only module that names Alpha Vantage or its
