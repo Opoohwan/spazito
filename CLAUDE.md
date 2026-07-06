@@ -120,7 +120,10 @@ Twilio POSTs form-encoded data. Read `e.parameter.Body` and `e.parameter.From`.
   - `pause` / `stop` — set paused flag true
   - `resume` / `start` — set paused flag false
   - `list` / `status` — reply with current watchlist + active/paused state
-  - Unrecognized — reply with short help message listing valid commands
+  - `help` — reply with the short help message listing valid commands
+  - Unrecognized — reply with the same short help message
+  - Parsing is deliberately lenient: words after the command are ignored
+    (`add TSLA please` adds TSLA; only the FIRST token after add/remove is the ticker)
 - Every command sends a confirmation SMS back via Twilio REST API (not TwiML response)
 
 ### Error handling (runs unattended — this matters)
