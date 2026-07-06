@@ -157,7 +157,8 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 - [ ] 🧑 Smoke test: text `list` → confirm reply; run `testSendNow` → confirm SMS arrives
 - [ ] **Integration-seams checklist** (break points unit tests can't cover): trigger
       really fires 5pm LA; `.claspignore` held (app loads); real `doPost` payload shape;
-      real Alpha Vantage + Twilio responses match the golden fixtures; layered gate rejects
+      real Alpha Vantage + Twilio responses match the golden fixtures — **if the live
+      shape differs, recapture and commit the refreshed fixture**; layered gate rejects
       a bad token / wrong `From` / replayed SID; a live `[#N TAG]` verifies in
       `tools/spazito-verifier.html`
 - 🛡 **Full council final pass + 🧑 David manual verification**

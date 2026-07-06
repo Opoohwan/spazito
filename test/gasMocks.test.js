@@ -67,6 +67,56 @@ describe('installLockService fidelity', () => {
   });
 });
 
+describe('installUrlFetchApp fidelity', () => {
+  const { installUrlFetchApp } = require('./gasMocks');
+
+  test('the response code defaults to 200; an explicit code wins', () => {
+    installUrlFetchApp({ body: 'ok' });
+    expect(global.UrlFetchApp.fetch('u').getResponseCode()).toBe(200);
+    installUrlFetchApp({ code: 500, body: 'nope' });
+    expect(global.UrlFetchApp.fetch('u').getResponseCode()).toBe(500);
+  });
+
+  test('object bodies are JSON-stringified; string bodies pass through verbatim', () => {
+    installUrlFetchApp({ body: { a: 1 } });
+    expect(global.UrlFetchApp.fetch('u').getContentText()).toBe('{"a":1}');
+    installUrlFetchApp({ body: '<html>raw</html>' });
+    expect(global.UrlFetchApp.fetch('u').getContentText()).toBe('<html>raw</html>');
+  });
+
+  test('a returned Error THROWS — matching real UrlFetchApp transport failures', () => {
+    // muteHttpExceptions only mutes HTTP status codes; DNS/socket failures
+    // still throw in real GAS, and the fake must behave the same.
+    installUrlFetchApp(() => new Error('Address unavailable'));
+    expect(() => global.UrlFetchApp.fetch('u')).toThrow('Address unavailable');
+  });
+
+  test('the recorder captures every call url + params, and callIndex is 1-based', () => {
+    const seen = [];
+    const recorder = installUrlFetchApp((url, params, callIndex) => {
+      seen.push(callIndex);
+      return { body: 'ok' };
+    });
+    global.UrlFetchApp.fetch('first', { x: 1 });
+    global.UrlFetchApp.fetch('second');
+    expect(recorder.calls).toEqual([{ url: 'first', params: { x: 1 } }, { url: 'second', params: undefined }]);
+    expect(seen).toEqual([1, 2]);
+  });
+});
+
+describe('installUtilities fidelity', () => {
+  const { installUtilities } = require('./gasMocks');
+
+  test('sleep records the requested ms without actually blocking', () => {
+    const recorder = installUtilities();
+    const before = Date.now();
+    global.Utilities.sleep(15000);
+    global.Utilities.sleep(15000);
+    expect(Date.now() - before).toBeLessThan(1000); // did not really wait
+    expect(recorder.sleeps).toEqual([15000, 15000]);
+  });
+});
+
 describe('install/uninstall lifecycle', () => {
   test('installPropertiesService exposes the store through the global', () => {
     installPropertiesService({ A: '1' });

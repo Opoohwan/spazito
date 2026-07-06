@@ -101,6 +101,16 @@ const Watchlist = {
         ' invalid/duplicate entr(ies); they were ignored. Stored value: ' + raw
       );
     }
+    // The cap holds on READ too: add() enforces it at write time, but a
+    // hand-edited property with 30 entries would otherwise feed a run that
+    // blows the daily API budget and the 6-minute cap (ADR 007).
+    if (clean.length > this.MAX_TICKERS) {
+      console.warn(
+        'WATCHLIST held ' + clean.length + ' tickers — using only the first ' +
+        this.MAX_TICKERS + ' (ADR 007 cap).'
+      );
+      return clean.slice(0, this.MAX_TICKERS);
+    }
     return clean;
   },
 

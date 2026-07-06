@@ -83,6 +83,62 @@ function installLockService({ failWait = false } = {}) {
   return recorder;
 }
 
+/**
+ * Install a fake global UrlFetchApp. `respond` decides each call's outcome:
+ *   - a function (url, params, callIndex) → result (callIndex is 1-BASED:
+ *     1 on the first fetch), or
+ *   - a single result object used for every call.
+ * A result is { code?, body } — code defaults to 200; an object body is
+ * JSON-stringified (as the real API would return text). Return/throw an
+ * Error to simulate a network failure (real UrlFetchApp throws).
+ * Returns a recorder of every { url, params } for assertions.
+ */
+function installUrlFetchApp(respond) {
+  const recorder = { calls: [] };
+  installGlobal('UrlFetchApp', {
+    fetch(url, params) {
+      recorder.calls.push({ url, params });
+      const result = typeof respond === 'function'
+        ? respond(url, params, recorder.calls.length)
+        : respond;
+      if (result instanceof Error) throw result;
+      return {
+        getResponseCode() {
+          return result.code === undefined ? 200 : result.code;
+        },
+        getContentText() {
+          return typeof result.body === 'string' ? result.body : JSON.stringify(result.body);
+        },
+      };
+    },
+  });
+  return recorder;
+}
+
+/**
+ * Install a fake global Utilities with a recorded (non-blocking) sleep —
+ * tests assert call spacing without actually waiting 15 seconds.
+ */
+function installUtilities() {
+  const recorder = { sleeps: [] };
+  installGlobal('Utilities', {
+    sleep(ms) {
+      recorder.sleeps.push(ms);
+    },
+  });
+  return recorder;
+}
+
+/**
+ * Install any fake under any global name, through the same teardown
+ * registry. This is how tests provide SHELL collaborators (Config,
+ * Watchlist, ...) to the module under test — mirroring GAS's shared global
+ * scope with a mock, per the ADR 006 §2 Node-side convention.
+ */
+function installFake(name, fake) {
+  return installGlobal(name, fake);
+}
+
 /** Remove every fake GAS global any install* helper put in place. */
 function uninstallGasGlobals() {
   for (const name of installedGlobals) delete global[name];
@@ -93,5 +149,8 @@ module.exports = {
   makeScriptProperties,
   installPropertiesService,
   installLockService,
+  installUrlFetchApp,
+  installUtilities,
+  installFake,
   uninstallGasGlobals,
 };

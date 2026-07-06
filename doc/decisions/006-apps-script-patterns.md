@@ -131,7 +131,7 @@ only reach across the boundaries listed. Anything else is bleed.
 |---|---|---|---|---|
 | `Config` | shell | Read + validate all **secrets** from Script Properties | `PropertiesService` (secrets only) | Hold app state; format; fetch; send |
 | `Watchlist` | shell | Own all **mutable state** (tickers, paused) + its schema | `PropertiesService` (state only) | Read secrets; fetch; format; send |
-| `PriceService` | shell | The **only** caller of Alpha Vantage | `UrlFetchApp`, `Config` | Format prices; send SMS; touch state |
+| `PriceService` | shell | The **only** caller of Alpha Vantage | `UrlFetchApp`, `Config`, `Utilities` (sleep — the §9/ADR 007 call spacing) | Format prices; send SMS; touch state |
 | `SmsService` | shell | The **only** caller of Twilio | `UrlFetchApp`, `Config` | Decide *what* or *when* to send; build message copy |
 | `Formatter` | core | Turn quote data into the daily message string (incl. empty & all-failed cases) | (nothing) | Any I/O whatsoever |
 | `CommandParser` | core | Turn a raw SMS body into a parsed intent | (nothing) | Any I/O whatsoever |
@@ -247,6 +247,12 @@ enforces quality instead of decaying into fragmentation-for-its-own-sake:
 **Invariant:** No file named `Utils`, `Helpers`, `Common`, `Misc`, or equivalent
 exists. No function does both computation and I/O. No god object accumulates unrelated
 methods.
+
+**Frozen-vocabulary convention** (emerged in Chunks 2–5, codified here): when a module
+returns or dispatches on string tokens, those tokens live in ONE frozen object on the
+module — `UPPER_SNAKE` key → lowercase-string value (`Watchlist.STATUS`,
+`CommandParser.TYPES`, `PriceService.REASON`). Callers reference the constants, never
+retype the literals. A new dispatching module follows the same shape.
 
 ---
 

@@ -1,0 +1,29 @@
+{
+  "_comment": "Golden fixture: Alpha Vantage GLOBAL_QUOTE response shape. Built from the documented API contract; Chunk 9's integration checklist verifies a live capture matches this shape and refreshes it if not. Tests must not invent their own response objects — they build from this.",
+  "success": {
+    "Global Quote": {
+      "01. symbol": "SPY",
+      "02. open": "622.3400",
+      "03. high": "624.8600",
+      "04. low": "620.9100",
+      "05. price": "623.6200",
+      "06. volume": "45231870",
+      "07. latest trading day": "2026-07-02",
+      "08. previous close": "620.4500",
+      "09. change": "3.1700",
+      "10. change percent": "0.5109%"
+    }
+  },
+  "unknownSymbol": {
+    "Global Quote": {}
+  },
+  "rateLimitNote": {
+    "Note": "Thank you for using Alpha Vantage! Our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans to instantly remove all daily rate limits."
+  },
+  "rateLimitInformation": {
+    "Information": "Thank you for using Alpha Vantage! Our standard API rate limit is 25 requests per day."
+  },
+  "errorMessage": {
+    "Error Message": "the parameter apikey is invalid or missing. Please claim your free API key on (https://www.alphavantage.co/support/#api-key)."
+  }
+}

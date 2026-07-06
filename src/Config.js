@@ -23,7 +23,7 @@ const Config = {
   // UNLOCK_SECRET) so a problem with those can never stop the daily text,
   // and so the alert path can be smoke-tested before the webhook exists.
   ALERT_KEYS: [
-    'ALPHA_VANTAGE_KEY',   // price quotes (alphavantage.co)
+    'ALPHA_VANTAGE_KEY',   // the price-quote API key (see SCHEMA.md for where to get it)
     'TWILIO_SID',          // Twilio account SID ("AC…")
     'TWILIO_AUTH_TOKEN',   // Twilio Basic-auth password — see note below
     'TWILIO_FROM_NUMBER',  // the Twilio number texts come FROM (E.164)
