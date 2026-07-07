@@ -204,25 +204,13 @@ const Watchlist = {
   },
 
   /**
-   * Run a mutation inside the script lock (ADR 006 §5 contract):
-   * acquire with a timeout → do the work → ALWAYS release in finally.
-   * Timeout → { status: STATUS.BUSY }, and since the lock was never
-   * acquired there is nothing to release — releaseLock must NOT be called
-   * on that path.
+   * Run a mutation inside the script lock. The acquire/release discipline
+   * itself lives in Locks (ADR 006 §5/§7 — one home, shared with
+   * SecurityVault); this wrapper only supplies Watchlist's timeout and its
+   * busy outcome shape.
    */
   _withLock(mutate) {
-    const lock = LockService.getScriptLock();
-    try {
-      lock.waitLock(this.LOCK_TIMEOUT_MS); // throws if not acquired in time
-    } catch (e) {
-      console.warn('Could not acquire the watchlist lock within ' + this.LOCK_TIMEOUT_MS + 'ms; replying busy.');
-      return { status: this.STATUS.BUSY };
-    }
-    try {
-      return mutate();
-    } finally {
-      lock.releaseLock();
-    }
+    return Locks.withScriptLock(this.LOCK_TIMEOUT_MS, mutate, () => ({ status: this.STATUS.BUSY }));
   },
 };
 

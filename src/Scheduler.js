@@ -6,10 +6,8 @@
  * is logged, never silent.
  *
  * The daily flow (ARCHITECTURE.md has the diagram):
- *   validate config (loud) → paused? stop → tickers → quotes → format → send
- *
- * The [#N TAG] auth block (ADR 008 §6) is appended between format and send
- * by the security signer — that step lands in Chunk 8b and slots in here.
+ *   validate config (loud) → paused? stop → tickers → quotes → format
+ *   → sign ([#N TAG], ADR 008 §6) → send
  */
 const Scheduler = {
   // When the daily text goes out: the 5pm hour, AMERICA/LOS_ANGELES —
@@ -63,9 +61,14 @@ const Scheduler = {
       // notice when there was nothing to fetch.
       const message = Formatter.summaryLine(quotes);
 
+      // The [#N TAG] auth block (ADR 008 §6) — a shell step because HMAC
+      // needs a GAS global. Signer degrades to unsigned rather than
+      // blocking the send.
+      const signed = Signer.sign(message);
+
       // SmsService logs its own failures and never throws; a failed send
       // is terminal — never retried (that would double-bill; ADR 006 §9).
-      SmsService.send(message);
+      SmsService.send(signed);
     } catch (e) {
       // Log it scrubbed (message + stack, so a random crash is
       // diagnosable), then re-throw a SANITIZED error: the run failed and

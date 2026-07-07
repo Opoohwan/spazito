@@ -31,11 +31,12 @@ const Config = {
     'VERIFIER_KEY',        // HMAC key for the [#N TAG] signature (ADR 008 §6)
   ],
 
-  // The keys the WEBHOOK path needs TODAY (doPost): commands fetch prices,
-  // reply via Twilio, and pass the URL-token gate. Chunk 8b adds
-  // UNLOCK_SECRET / VERIFIER_KEY here when the code actually reads them —
-  // a not-yet-used secret must never dark-fail a working command
-  // (Chunk 8a gate).
+  // The keys the WEBHOOK path needs (doPost): commands fetch prices, reply
+  // via Twilio, pass the layered gate (token + From + replay), hash audit
+  // senders (VERIFIER_KEY), and re-arm after a lockout (UNLOCK_SECRET).
+  // As of Chunk 8b the webhook genuinely reads every one of these — the
+  // list exists so a key belonging to an UNBUILT feature can never
+  // dark-fail a working command (Chunk 8a gate decision).
   WEBHOOK_KEYS: [
     'ALPHA_VANTAGE_KEY',
     'TWILIO_SID',
@@ -43,6 +44,8 @@ const Config = {
     'TWILIO_FROM_NUMBER',
     'RECIPIENT_NUMBER',
     'WEBHOOK_TOKEN',
+    'VERIFIER_KEY',
+    'UNLOCK_SECRET',
   ],
 
   // Every key that must be set for a FULL deployment (alert + webhook +

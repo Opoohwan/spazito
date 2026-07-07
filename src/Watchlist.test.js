@@ -4,9 +4,11 @@
 const {
   installPropertiesService,
   installLockService,
+  installFake,
   uninstallGasGlobals,
 } = require('../test/gasMocks');
 const { Watchlist } = require('./Watchlist');
+const { Locks } = require('./Locks');
 
 let props;
 let lockRecorder;
@@ -14,6 +16,9 @@ let lockRecorder;
 beforeEach(() => {
   props = installPropertiesService({});
   lockRecorder = installLockService();
+  // The REAL Locks module runs against the fake LockService, so the
+  // recorder still observes Watchlist's acquire/release discipline.
+  installFake('Locks', Locks);
 });
 
 afterEach(() => {

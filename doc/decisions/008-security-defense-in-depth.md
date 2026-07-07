@@ -43,14 +43,22 @@ Two honest platform constraints shape what's buildable:
 - After N consecutive blocked attempts the bot **seals** and ignores everyone until
   re-armed with a separate `UNLOCK_SECRET`. Brute force → it goes dark. Any auth failure
   produces a **silent 200** with zero side effects (no Alpha Vantage call, no reply).
+- **Amended at the Chunk 8b gate:** only **token-valid** failures count toward the seal
+  — a targeted probe by someone holding the secret webhook URL. Ambient junk texts
+  (spam that hits every Twilio number; no token) are rejected for one property read
+  with **zero writes**: they can neither seal the bot (self-DoS) nor drain the storage
+  quota (flood-DoS). While sealed, rejections also write nothing. A replayed
+  `MessageSid` cannot re-arm the bot.
 
 ### 4. Security is *pull*, not *push* (the anti-spam rule)
 - Blocked attempts are **logged to the audit trail only** — never proactively texted.
   (Ambient junk hits Twilio numbers constantly; push-alerting on it would spam the
   recipient and cry wolf. This was an earlier design mistake, corrected here.)
 - The recipient pulls it on demand: text **`log`** → redacted recent activity.
-- The **only** proactive security text is a single optional **"🔒 sealed"** notice when
-  the lockout trips (off by default).
+- The **only** proactive security text is a single **"🔒 sealed"** notice when the
+  lockout trips. **Amended at the Chunk 8b gate: ON by default** — with token-gated
+  counting (above), sealing now means a genuinely targeted attack, and a silently-sealed
+  bot would just look broken to its one user.
 
 ### 5. Twilio account hardening (the real vault door)
 - **2FA on the Twilio account.** Spazito authenticates with a **scoped API Key /

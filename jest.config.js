@@ -45,5 +45,12 @@ module.exports = {
       branches: 100,
       functions: 100,
     },
+    // Per-FILE floor for shell modules: no single module can hide under
+    // its well-tested siblings' average (the global pool masks that).
+    './src/*.js': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+    },
   },
 };

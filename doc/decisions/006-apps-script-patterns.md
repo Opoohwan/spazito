@@ -139,9 +139,12 @@ only reach across the boundaries listed. Anything else is bleed.
 | `Replies` | core | Hold command reply / help / error copy strings | (nothing) | Any I/O; price formatting (that's `Formatter`) |
 | `Tickers` | core | Canonical ticker text rules (normalize once, at the shell boundary) | (nothing) | Any I/O whatsoever |
 | `Redactor` | core | Scrub secret-shaped substrings from strings before they reach a log (§11) | (nothing) | Any I/O whatsoever |
-| `Scheduler` | shell | Orchestrate the daily run + own the time trigger | `Watchlist`, `PriceService`, `Formatter`, `SmsService`, `Config` (validate-for-alert, §8), `Redactor` (log scrub, §11), `ScriptApp` (trigger install) | Fetch, format, persist, or send *itself* |
-| `CommandHandler` | shell | `doPost` entry; authorize, parse, dispatch, reply | `Config`, `SecurityGate`, `CommandParser`, `Replies`, `Tickers`, `Watchlist`, `PriceService`, `SmsService`, `Redactor` (log scrub, §11), `ContentService` (the empty-200 response) | Contain command business logic inline; format prices; make auth decisions itself |
-| `SecurityGate` | shell | The webhook AUTHORIZATION decision (ADR 008 gate: token → From → replay → lockout) | `Config` (secrets, fresh), `SecureCompare` | Act on commands; send; touch watchlist state |
+| `Scheduler` | shell | Orchestrate the daily run + own the time trigger | `Watchlist`, `PriceService`, `Formatter`, `Signer` (§ADR 008 auth block), `SmsService`, `Config` (validate-for-alert, §8), `Redactor` (log scrub, §11), `ScriptApp` (trigger install) | Fetch, format, persist, or send *itself* |
+| `CommandHandler` | shell | `doPost` entry; authorize, parse, dispatch, reply | `Config`, `SecurityGate`, `CommandParser`, `Replies`, `Tickers`, `Watchlist`, `PriceService`, `SmsService`, `SecurityVault` (audit pull for `log`), `Redactor` (log scrub, §11), `ContentService` (the empty-200 response) | Contain command business logic inline; format prices; make auth decisions itself |
+| `SecurityGate` | shell | The webhook AUTHORIZATION decision (ADR 008 gate: sealed → token → From → replay) | `Config` (secrets, fresh), `SecureCompare`, `SecurityVault`, `CommandParser` (unlock recognition while sealed) | Act on commands; send; touch watchlist state |
+| `SecurityVault` | shell | Own all SECURITY STATE: sequence counter, lockout, replay set, audit ring (ADR 008) | `PropertiesService` (security keys only), `Locks`, `Utilities` (HMAC for sender hashing), `Config` (VERIFIER_KEY) | Make auth decisions; send; touch watchlist state |
+| `Signer` | shell | Append the `[#N TAG]` auth block (ADR 008 §6 — the verifier's contract) | `SecurityVault` (sequence), `Config` (VERIFIER_KEY, debug flag), `Utilities` (HMAC) | Build message copy; decide when to send |
+| `Locks` | shell | The one home of the script-lock discipline (§5) | `LockService` | Hold state or logic of its own |
 | `SecureCompare` | core | Constant-time string equality for the auth gate | (nothing) | Any I/O whatsoever |
 
 **Invariant:** `PriceService` is the only module that names Alpha Vantage or its
@@ -196,10 +199,11 @@ pre-write value, a harmless timing artifact, not corruption.
 file changes. A second module reaching around the owner is the coupling that makes
 future edits dangerous.
 
-**Invariant:** `grep` for `getScriptProperties` returns hits only in `Config` and
-`Watchlist`. `grep` for the Alpha Vantage host returns hits only in `PriceService`.
-`grep` for the Twilio host returns hits only in `SmsService`. A hit anywhere else is a
-boundary violation.
+**Invariant:** `grep` for `getScriptProperties` returns hits only in `Config`
+(secrets), `Watchlist` (app state), and `SecurityVault` (security state — the third
+owner, added in Chunk 8b). `grep` for the Alpha Vantage host returns hits only in
+`PriceService`. `grep` for the Twilio host returns hits only in `SmsService`. A hit
+anywhere else is a boundary violation.
 
 ---
 

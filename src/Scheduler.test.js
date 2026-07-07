@@ -20,7 +20,7 @@ function installCollaborators({
   ],
   validateThrows = null,
 } = {}) {
-  const calls = { validate: 0, isPaused: 0, tickers: 0, quotesFor: [], summaryLine: [], send: [] };
+  const calls = { validate: 0, isPaused: 0, tickers: 0, quotesFor: [], summaryLine: [], sign: [], send: [] };
   installFake('Config', {
     validateForAlert: () => {
       calls.validate += 1;
@@ -59,6 +59,12 @@ function installCollaborators({
       return { outcome: 'sent' };
     },
   });
+  installFake('Signer', {
+    sign: (message) => {
+      calls.sign.push(message);
+      return message + ' [#1 FAKETAG1]';
+    },
+  });
   installFake('Redactor', { scrub: (t) => String(t) });
   return calls;
 }
@@ -84,7 +90,8 @@ describe('the happy path — orchestration only, each collaborator exactly once'
     expect(calls.quotesFor).toEqual([['SPY', 'GLD', 'SLV']]); // exactly what Watchlist said
     expect(calls.summaryLine).toHaveLength(1);
     expect(calls.summaryLine[0].map((q) => q.ticker)).toEqual(['SPY', 'GLD', 'SLV']);
-    expect(calls.send).toEqual(['FORMATTED LINE']); // sends what Formatter built — verbatim
+    expect(calls.sign).toEqual(['FORMATTED LINE']); // the signer sees Formatter's line
+    expect(calls.send).toEqual(['FORMATTED LINE [#1 FAKETAG1]']); // and the SIGNED text goes out
     expect(console.error).not.toHaveBeenCalled();
   });
 });

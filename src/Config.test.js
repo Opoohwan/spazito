@@ -150,15 +150,15 @@ describe('Config.validateForAlert', () => {
 });
 
 describe('Config.validateForWebhook', () => {
-  test('passes without the 8b-only secrets — an unused key can never dark-fail a command', () => {
-    const webhookOnly = { ...ALL_KEYS_SET };
-    delete webhookOnly.UNLOCK_SECRET;
-    delete webhookOnly.VERIFIER_KEY;
-    installPropertiesService(webhookOnly);
+  test('as of 8b the webhook reads every required key (gate, audit hash, unlock) — all validated', () => {
+    installPropertiesService(ALL_KEYS_SET);
     expect(() => Config.validateForWebhook()).not.toThrow();
+    // The scoped list still exists so a FUTURE unbuilt-feature key can be
+    // kept out of it (the Chunk 8a lesson); today the sets coincide.
+    expect([...Config.WEBHOOK_KEYS].sort()).toEqual([...Config.REQUIRED_KEYS].sort());
   });
 
-  test('still fails loudly when a key the webhook actually uses is missing', () => {
+  test('fails loudly when a key the webhook actually uses is missing', () => {
     const partial = { ...ALL_KEYS_SET };
     delete partial.WEBHOOK_TOKEN;
     installPropertiesService(partial);

@@ -194,6 +194,24 @@ describe('allFailed — the run-outcome classifier (one owner of ok-semantics)',
   });
 });
 
+describe('the signed-payload charset contract', () => {
+  test('everything summaryLine can emit is PURE ASCII — the HMAC path depends on it', () => {
+    // GAS's HMAC charset for non-ASCII strings is undocumented; the
+    // offline verifier hashes UTF-8. Keeping every signable payload ASCII
+    // makes the question moot (8b gate, js-rigor).
+    const outputs = [
+      Formatter.EMPTY_WATCHLIST_MESSAGE,
+      Formatter.summaryLine([q('SPY', '7500'), q('GLD', '4500'), q('SLV', '70')]),
+      Formatter.summaryLine([failed('SPY'), q('TSLA', '412.38')]),
+    ];
+    for (const text of outputs) {
+      for (const char of text) {
+        expect(char.charCodeAt(0)).toBeLessThan(128);
+      }
+    }
+  });
+});
+
 describe('the rules table itself', () => {
   test('is frozen — display rules change by edit + test, never at runtime', () => {
     expect(Object.isFrozen(Formatter.DISPLAY_RULES)).toBe(true);

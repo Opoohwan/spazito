@@ -13,13 +13,23 @@
 // free — the teardown can never drift out of sync with the installs, which
 // would leak fakes across tests and cause order-dependent flakes.
 
-// Names of every global currently installed by this module.
-const installedGlobals = new Set();
+// Every global this module installed, mapped to what was there before —
+// so teardown RESTORES a pre-existing global (e.g. a core module installed
+// by the gasScope bootstrap that a test temporarily faked) instead of
+// deleting it and starving every later test in the file.
+const installedGlobals = new Map();
 
 /** Install a fake under a global name and remember it for teardown. */
 function installGlobal(name, fake) {
+  if (!installedGlobals.has(name)) {
+    installedGlobals.set(
+      name,
+      Object.prototype.hasOwnProperty.call(global, name)
+        ? { existed: true, value: global[name] }
+        : { existed: false }
+    );
+  }
   global[name] = fake;
-  installedGlobals.add(name);
   return fake;
 }
 
@@ -131,6 +141,17 @@ function installUtilities() {
     base64Encode(text) {
       return Buffer.from(String(text), 'utf8').toString('base64');
     },
+    // Real HMAC via Node crypto, returned exactly the way GAS returns it:
+    // an array of SIGNED bytes (-128..127), not a Buffer. The Signer's
+    // byte→hex conversion depends on that quirk, so the fake must share it
+    // (pinned against the RFC test vector in gasMocks.test.js).
+    computeHmacSha256Signature(value, key) {
+      const digest = require('crypto')
+        .createHmac('sha256', String(key))
+        .update(String(value), 'utf8')
+        .digest();
+      return Array.from(digest).map((byte) => (byte > 127 ? byte - 256 : byte));
+    },
   });
   return recorder;
 }
@@ -201,9 +222,15 @@ function installFake(name, fake) {
   return installGlobal(name, fake);
 }
 
-/** Remove every fake GAS global any install* helper put in place. */
+/**
+ * Undo every install: a global that existed before (a gasScope core
+ * module) is restored; one we created from nothing is deleted.
+ */
 function uninstallGasGlobals() {
-  for (const name of installedGlobals) delete global[name];
+  for (const [name, previous] of installedGlobals) {
+    if (previous.existed) global[name] = previous.value;
+    else delete global[name];
+  }
   installedGlobals.clear();
 }
 

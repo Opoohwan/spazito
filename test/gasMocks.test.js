@@ -120,6 +120,24 @@ describe('installUtilities fidelity', () => {
     installUtilities();
     expect(global.Utilities.base64Encode('user:pass')).toBe('dXNlcjpwYXNz');
   });
+
+  test('computeHmacSha256Signature matches the RFC test vector AND returns GAS-style SIGNED bytes', () => {
+    // Same vector the offline verifier self-tests against:
+    // HMAC-SHA256("key", "The quick brown fox...") = f7bc83f4...
+    installUtilities();
+    const bytes = global.Utilities.computeHmacSha256Signature(
+      'The quick brown fox jumps over the lazy dog',
+      'key'
+    );
+    expect(bytes).toHaveLength(32);
+    // GAS returns signed bytes: 0xF7 arrives as -9, not 247.
+    expect(bytes[0]).toBe(-9);
+    const hex = bytes
+      .map((b) => ((b + 256) % 256).toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase();
+    expect(hex.startsWith('F7BC83F430538424B13298E6AA6FB143')).toBe(true);
+  });
 });
 
 describe('installScriptApp fidelity', () => {
@@ -157,5 +175,23 @@ describe('install/uninstall lifecycle', () => {
     uninstallGasGlobals();
     expect(global.PropertiesService).toBeUndefined();
     expect(global.LockService).toBeUndefined();
+  });
+
+  test('a PRE-EXISTING global that a test faked is RESTORED, not deleted', () => {
+    // The gasScope bootstrap installs real core modules as globals; a test
+    // that temporarily fakes one (e.g. CommandParser) must get the real one
+    // back on teardown, or every later test in the file is starved — the
+    // exact bug this fixed in Chunk 8b.
+    const { installFake: installAnyFake } = require('./gasMocks');
+    const original = { iAmThe: 'real module' };
+    global.PreExistingThing = original;
+    try {
+      installAnyFake('PreExistingThing', { iAmThe: 'fake' });
+      expect(global.PreExistingThing.iAmThe).toBe('fake');
+      uninstallGasGlobals();
+      expect(global.PreExistingThing).toBe(original); // the SAME object is back
+    } finally {
+      delete global.PreExistingThing;
+    }
   });
 });

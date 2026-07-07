@@ -98,6 +98,39 @@ const Replies = {
   busy() {
     return 'Spazito is mid-change on another request — give it a few seconds and try again.';
   },
+
+  /**
+   * The pull-based security log (ADR 008 §4). Entries arrive newest-first
+   * as { t: ISO time, k: kind, s: sender hash }. Rendered compactly — this
+   * is an SMS, not a report. Senders are already hashes; nothing here can
+   * identify a number.
+   */
+  auditLog(entries) {
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return 'Security log: empty. No blocked attempts on record.';
+    }
+    const lines = entries.map((entry) => {
+      const day = String(entry.t || '').slice(5, 10); // MM-DD from the ISO stamp
+      return day + ' ' + entry.k + ' (' + entry.s + ')';
+    });
+    return 'Security log, newest first: ' + lines.join(' | ');
+  },
+
+  unlocked() {
+    return 'Spazito is unlocked and running. All good.';
+  },
+
+  /**
+   * The one proactive security text, sent exactly once when the lockout
+   * trips (ADR 008 §4, switched ON at the 8b gate). Tells the recipient
+   * what happened AND the way back in — a sealed bot must never just
+   * look broken.
+   */
+  sealedNotice() {
+    return '🔒 Spazito sealed itself after repeated blocked requests and is ignoring all ' +
+      'commands. To re-arm it, text: unlock YOUR-SECRET (the unlock phrase from setup). ' +
+      'Daily prices continue as normal.';
+  },
 };
 
 // Dual-load guard (ADR 006 §2): inert in Apps Script; exposes the module to

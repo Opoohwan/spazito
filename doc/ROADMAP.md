@@ -170,6 +170,15 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 - **Duplicate-send guard** — a `LAST_SENT_DATE` key so a double-firing trigger can't text
   twice. Noted in `SCHEMA.md` as reserved. Add if it proves needed; not worth the state
   on day one.
+- **Dedicated `AUDIT_SALT`** — `SecurityVault.hashSender` currently salts with
+  `VERIFIER_KEY` (key reuse: the same key signs messages). Exposure is ~nil for a
+  single-recipient tool whose only audit reader holds that key, but a dedicated salt
+  property is cleaner. Cheap to add later; noted at the 8b gate.
+- **Unsigned-degrade visibility** — when the signer can't claim a sequence number
+  (vault lock busy, vanishingly rare) the daily text goes out with no `[#N TAG]`.
+  Recipient guidance: "no tag = the bot couldn't sign that one, not forged" — goes in
+  the key-provisioning note at deploy. A visible `[unsigned]` marker was considered and
+  parked.
 - _(Twilio `X-Twilio-Signature` validation was investigated and dropped — GAS web apps
   can't read request headers, so it's infeasible on this stack. Superseded by the URL
   bearer token in ADR 008.)_

@@ -98,3 +98,34 @@ describe('pause / resume / list / busy', () => {
     expect(Replies.busy().toLowerCase()).toContain('try again');
   });
 });
+
+describe('security replies (ADR 008)', () => {
+  test('an empty audit log says so plainly', () => {
+    expect(Replies.auditLog([]).toLowerCase()).toContain('empty');
+    expect(Replies.auditLog(undefined).toLowerCase()).toContain('empty');
+  });
+
+  test('audit entries render compactly: date, kind, sender hash — never a number', () => {
+    const text = Replies.auditLog([
+      { t: '2026-07-05T01:02:03.000Z', k: 'replay', s: 'A1B2C3' },
+      { t: '2026-07-04T00:00:00.000Z', k: 'rejected', s: 'D4E5F6' },
+    ]);
+    expect(text).toContain('07-05 replay (A1B2C3)');
+    expect(text).toContain('07-04 rejected (D4E5F6)');
+  });
+
+  test('a malformed entry (no timestamp) still renders without crashing', () => {
+    expect(Replies.auditLog([{ k: 'rejected', s: 'AAAAAA' }])).toContain('rejected (AAAAAA)');
+  });
+
+  test('unlocked() states the bot is running', () => {
+    expect(Replies.unlocked().toLowerCase()).toContain('unlocked');
+  });
+
+  test('the sealed notice explains what happened, the way back in, and that prices continue', () => {
+    const text = Replies.sealedNotice();
+    expect(text.toLowerCase()).toContain('sealed');
+    expect(text.toLowerCase()).toContain('unlock');
+    expect(text.toLowerCase()).toContain('prices continue');
+  });
+});

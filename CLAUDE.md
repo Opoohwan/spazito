@@ -25,8 +25,11 @@ src/                     — the ONLY folder clasp pushes (.clasp.json rootDir: 
   Watchlist.js           — sole owner of mutable state (watchlist + paused); LockService-guarded writes
   PriceService.js        — sole caller of Alpha Vantage GLOBAL_QUOTE; spaces calls, no retries (ADR 007); returns ordered [{ticker,price,ok}]
   SmsService.js          — sole caller of Twilio REST; DEBUG_MODE logs instead of sending
-  Scheduler.js           — orchestrates the daily run (Watchlist → PriceService → Formatter → SmsService); trigger + testSendNow
-  SecurityGate.js        — the webhook authorization decision (ADR 008 layered gate)
+  Scheduler.js           — orchestrates the daily run (Watchlist → PriceService → Formatter → Signer → SmsService); trigger + testSendNow
+  SecurityGate.js        — the webhook authorization decision (ADR 008: sealed → token → From → replay)
+  SecurityVault.js       — sole owner of security state (sequence counter, lockout, replay set, audit ring)
+  Signer.js              — appends the [#N TAG] auth block (the offline verifier's contract)
+  Locks.js               — the one home of the script-lock discipline (shared by Watchlist + SecurityVault)
   CommandHandler.js      — doPost(e): gate → parse → dispatch table → reply
   core/                  — pure modules (no I/O; unit-tested in Node; tests live alongside as *.test.js, kept off the push by .claspignore)
     Formatter.js         — quote data → the message string (display-rules table; ADR 006 §10)
@@ -125,6 +128,10 @@ Twilio POSTs form-encoded data. Read `e.parameter.Body` and `e.parameter.From`.
   - `resume` / `start` — set paused flag false
   - `list` / `status` — reply with current watchlist + active/paused state
   - `help` — reply with the short help message listing valid commands
+  - `log` — reply with the recent security audit (blocked attempts, senders hashed) —
+    security is pull, not push (ADR 008 §4)
+  - `unlock SECRET` — re-arm a sealed bot (the secret is case-sensitive and must arrive
+    with the valid URL token and From; handled inside the gate)
   - Unrecognized — reply with the same short help message
   - Parsing is deliberately lenient: words after the command are ignored
     (`add TSLA please` adds TSLA; only the FIRST token after add/remove is the ticker)

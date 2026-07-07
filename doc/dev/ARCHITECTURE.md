@@ -1,8 +1,7 @@
 # Spazito — Architecture
 
-> **Status: implemented through Chunk 8a** (all modules below exist and are
-> tested except the Chunk 8b security-vault features: MessageSid replay,
-> auto-lockout, audit log, and the `[#N TAG]` message signer). The binding
+> **Status: fully implemented** (Chunks 0–8b — every module below exists and
+> is tested; what remains is the live deployment, ROADMAP Chunk 9). The binding
 > rules live in **ADR 006** (`doc/decisions/`); this is the map, that is the law.
 
 ## What Spazito is
@@ -73,7 +72,10 @@ Condensed from ADR 006 §4 (the No-Bleed Boundary Map). Each module owns one thi
 | `Watchlist` | shell | Own all **mutable state** (tickers, paused) and its schema |
 | `PriceService` | shell | The **only** caller of Alpha Vantage |
 | `SmsService` | shell | The **only** caller of Twilio |
-| `SecurityGate` | shell | The webhook **authorization decision** (ADR 008 layered gate) |
+| `SecurityGate` | shell | The webhook **authorization decision** (ADR 008: sealed → token → From → replay) |
+| `SecurityVault` | shell | Own all **security state**: sequence counter, lockout, replay set, audit ring |
+| `Signer` | shell | Append the `[#N TAG]` auth block (the offline verifier's contract) |
+| `Locks` | shell | The one home of the script-lock discipline (§5) |
 | `Scheduler` | shell | Orchestrate the daily run + own the time trigger |
 | `CommandHandler` | shell | `doPost`: gate → parse → dispatch → reply |
 | `core/Formatter` | core | Quote data → the message string (money rules; empty & all-failed; `allFailed` classifier) |

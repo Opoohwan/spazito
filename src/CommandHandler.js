@@ -29,21 +29,29 @@ const CommandHandler = {
    */
   doPost(e) {
     try {
-      // A half-configured deployment fails loud in the log (ADR 006 §8) —
-      // the catch below still answers the wire with a quiet 200. Scoped to
-      // the WEBHOOK's own keys: a missing secret for a not-yet-built
-      // feature must not silence working commands.
-      Config.validateForWebhook();
+      // AUTHORIZE FIRST — before anything else runs or is read
+      // (ADR 006 §11). This ordering is also the flood defense: a hostile
+      // request is rejected after ONE property read (the sealed check)
+      // to at most a couple of secret reads, with no validation sweep.
+      const auth = SecurityGate.authorize(e);
+      if (!auth.allowed) {
+        // The ONE proactive security text (ADR 008 §4): the moment the
+        // bot seals itself, tell the recipient — a silently-sealed bot
+        // would just look broken, forever.
+        if (auth.justSealed) SmsService.send(Replies.sealedNotice());
+        return this._emptyOk();
+      }
 
-      // AUTHORIZE FIRST — before the body is even parsed (ADR 006 §11).
-      if (!SecurityGate.authorize(e)) return this._emptyOk();
+      // A half-configured deployment fails loud in the log (ADR 006 §8) —
+      // the catch below still answers the wire with a quiet 200. Runs
+      // AFTER the gate so only authorized requests pay the full sweep.
+      Config.validateForWebhook();
 
       const body = e && e.parameter ? e.parameter.Body : '';
       const intent = CommandParser.parse(body);
 
-      // Dispatch table (§6): one small handler per command. An intent with
-      // no entry yet (log/unlock arrive in Chunk 8b) gets the help text —
-      // never a silent nothing.
+      // Dispatch table (§6): one small handler per command. An intent
+      // with no entry gets the help text — never a silent nothing.
       const handler = this._commands()[intent.type];
       const reply = handler ? handler(intent.arg) : Replies.help();
 
@@ -74,6 +82,13 @@ const CommandHandler = {
       [CommandParser.TYPES.RESUME]: () => this._setPaused(false),
       [CommandParser.TYPES.LIST]: () => Replies.list(Watchlist.tickers(), Watchlist.isPaused()),
       [CommandParser.TYPES.HELP]: () => Replies.help(),
+      // Security commands (ADR 008 §3/§4). `log` pulls the audit trail —
+      // blocked attempts are never pushed (the sole exception is the
+      // one-time sealed notice). `unlock` reaching this table means the
+      // gate just re-armed the bot OR it was never sealed — both
+      // truthfully answered by the same reply.
+      [CommandParser.TYPES.LOG]: () => Replies.auditLog(SecurityVault.recentAudit(8)),
+      [CommandParser.TYPES.UNLOCK]: () => Replies.unlocked(),
     };
   },
 

@@ -37,8 +37,8 @@ const CommandParser = {
     RESUME: 'resume',
     LIST: 'list',
     HELP: 'help',
-    LOG: 'log',       // security audit pull (ADR 008 §4) — handled in Chunk 8b
-    UNLOCK: 'unlock', // re-arm after auto-lockout (ADR 008 §3) — handled in Chunk 8b
+    LOG: 'log',       // pull the security audit (ADR 008 §4)
+    UNLOCK: 'unlock', // re-arm after auto-lockout (ADR 008 §3; the gate handles it while sealed)
   }),
 
   // Every word the recipient can text (lowercased) → its canonical type.

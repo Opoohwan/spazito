@@ -51,8 +51,11 @@ const Formatter = {
   // means every attempt failed (a full "n/a" line — the caller logs that).
   // (The command-reply copy for "you just removed the last ticker" is
   // core/Replies' concern — deliberately separate from this daily-run notice.)
+  // PURE ASCII ONLY: everything summaryLine can emit gets HMAC-signed, and
+  // the GAS-side charset for non-ASCII in that HMAC is undocumented — one
+  // em dash here could make a genuine message fail verification (8b gate).
   EMPTY_WATCHLIST_MESSAGE:
-    'Your watchlist is empty — text "add SPY" (or any ticker) to start getting daily prices.',
+    'Your watchlist is empty - text "add SPY" (or any ticker) to start getting daily prices.',
 
   /**
    * The one public entry point: ordered quotes in, finished message out.

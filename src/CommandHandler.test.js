@@ -24,7 +24,7 @@ function installCollaborators({
   installFake('SecurityGate', {
     authorize: (e) => {
       calls.authorize.push(e);
-      return authorized;
+      return { allowed: authorized, justSealed: false };
     },
   });
   installFake('Watchlist', {
@@ -47,6 +47,12 @@ function installCollaborators({
   });
   installFake('SmsService', {
     send: (message) => { calls.send.push(message); return { outcome: 'sent' }; },
+  });
+  installFake('SecurityVault', {
+    recentAudit: () => [
+      { t: '2026-07-05T01:00:00.000Z', k: 'replay', s: 'A1B2C3' },
+      { t: '2026-07-04T01:00:00.000Z', k: 'rejected', s: 'D4E5F6' },
+    ],
   });
   installFake('ContentService', {
     createTextOutput: (text) => ({ kind: 'TextOutput', text }),
@@ -71,28 +77,39 @@ afterEach(() => {
 });
 
 describe('authorization comes FIRST and rejection is absolutely silent', () => {
-  test('unauthorized → empty 200, no reply, no state touch, no paid call', () => {
+  test('unauthorized → empty 200, no reply, no state touch, no paid call, NO validation sweep', () => {
     const calls = installCollaborators({ authorized: false });
     const result = CommandHandler.doPost(post('add TSLA'));
     expect(result).toEqual({ kind: 'TextOutput', text: '' });
     expect(calls.send).toHaveLength(0);
     expect(calls.add).toHaveLength(0);
     expect(calls.quotesFor).toHaveLength(0);
+    expect(calls.validate).toBe(0); // hostile requests don't pay the 8-read sweep
   });
 
-  test('the gate sees the raw event; config is validated BEFORE the gate runs (order pinned)', () => {
+  test('the gate runs BEFORE validation (order pinned) — the gate is the flood defense', () => {
     const order = [];
     const calls = installCollaborators();
     installFake('Config', { validateForWebhook: () => order.push('validate') });
     installFake('SecurityGate', {
-      authorize: () => {
+      authorize: (e) => {
         order.push('authorize');
-        return true;
+        return { allowed: true, justSealed: false };
       },
     });
     CommandHandler.doPost(post('list'));
-    expect(order).toEqual(['validate', 'authorize']);
+    expect(order).toEqual(['authorize', 'validate']);
     expect(calls.send).toHaveLength(1);
+  });
+
+  test('the sealing transition sends the ONE sealed notice — then silence', () => {
+    const calls = installCollaborators();
+    installFake('SecurityGate', {
+      authorize: () => ({ allowed: false, justSealed: true }),
+    });
+    const result = CommandHandler.doPost(post('anything'));
+    expect(result).toEqual({ kind: 'TextOutput', text: '' });
+    expect(calls.send).toEqual([Replies.sealedNotice()]);
   });
 });
 
@@ -150,9 +167,27 @@ describe('command dispatch — each command, one reply', () => {
     }
   });
 
-  test('a parsed-but-not-yet-wired command (log — Chunk 8b) gets help, never silence', () => {
+  test('log pulls the audit trail (security is pull, not push — ADR 008 §4)', () => {
     const calls = installCollaborators();
     CommandHandler.doPost(post('log'));
+    expect(calls.send).toHaveLength(1);
+    expect(calls.send[0]).toContain('replay');
+    expect(calls.send[0]).toContain('A1B2C3');
+  });
+
+  test('unlock (having passed the gate) replies with the running confirmation', () => {
+    const calls = installCollaborators();
+    CommandHandler.doPost(post('unlock some-secret'));
+    expect(calls.send).toEqual([Replies.unlocked()]);
+  });
+
+  test('a future parser type with no table row still falls back to help (defensive seam)', () => {
+    const calls = installCollaborators();
+    installFake('CommandParser', {
+      TYPES: { ADD: 'add', REMOVE: 'remove', PAUSE: 'pause', RESUME: 'resume', LIST: 'list', HELP: 'help', LOG: 'log', UNLOCK: 'unlock' },
+      parse: () => ({ type: 'shiny_new_command', arg: null }),
+    });
+    CommandHandler.doPost(post('anything'));
     expect(calls.send).toEqual([Replies.help()]);
   });
 

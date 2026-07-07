@@ -78,10 +78,18 @@ ADR 008 — so a leaked property can at worst send messages, not own the account
 - The watchlist is **capped at 10 tickers** — the Alpha Vantage free-tier budget (ADR
   007). `add` refuses beyond the cap with a friendly reply.
 
-**Security / message state (ADR 008), owned by the security layer — not `Watchlist`:**
-the message sequence **counter**, the **lockout** attempt-count + sealed flag, the recent
-**`MessageSid`** replay set (TTL), and a bounded **audit** log (senders hashed) — same
-single-owner discipline as above.
+## Security / message state keys (owned by `SecurityVault` — ADR 008)
+
+Same single-owner discipline: only `SecurityVault` touches these; encodings are its
+private detail. All writes run under the script lock (`Locks`).
+
+| Key | Format | Purpose | Default when unset |
+|---|---|---|---|
+| `SEC_MSG_COUNT` | integer string | The `[#N TAG]` sequence counter — +1 per SENT alert (DEBUG_MODE peeks, never consumes) | `0` |
+| `SEC_FAILURES` | integer string | Consecutive rejected webhook requests; seals the bot at `MAX_FAILURES` (5) | `0` |
+| `SEC_SEALED` | `"true"`/`"false"` | Lockout flag — while `"true"` everything is ignored except a fully-authenticated `unlock` | not sealed |
+| `SEC_SEEN_SIDS` | JSON array `[{sid,t}]` | Replay set: recent Twilio MessageSids (24h TTL, capped at 50) | `[]` |
+| `SEC_AUDIT` | JSON array `[{t,k,s}]` | Bounded audit ring (20): ISO time, event kind, SALTED SENDER HASH — never a raw number | `[]` |
 
 **Reserved (not yet implemented):** if duplicate-send protection is added later, a
 `LAST_SENT_DATE` key (owned by `Watchlist` or `Scheduler`) would record the last
@@ -116,4 +124,5 @@ Watchlist.isPaused()                  // state  — Watchlist only, returns bool
 ```
 
 Anything that reaches into `PropertiesService.getScriptProperties()` directly, outside
-those two modules, is a boundary violation (ADR 006 §5).
+the three owner modules — `Config` (secrets), `Watchlist` (app state), `SecurityVault`
+(security state) — is a boundary violation (ADR 006 §5).
