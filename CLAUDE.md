@@ -26,11 +26,15 @@ src/                     — the ONLY folder clasp pushes (.clasp.json rootDir: 
   PriceService.js        — sole caller of Alpha Vantage GLOBAL_QUOTE; spaces calls, no retries (ADR 007); returns ordered [{ticker,price,ok}]
   SmsService.js          — sole caller of Twilio REST; DEBUG_MODE logs instead of sending
   Scheduler.js           — orchestrates the daily run (Watchlist → PriceService → Formatter → SmsService); trigger + testSendNow
-  CommandHandler.js      — doPost(e): authorize sender → parse → dispatch table → reply
+  SecurityGate.js        — the webhook authorization decision (ADR 008 layered gate)
+  CommandHandler.js      — doPost(e): gate → parse → dispatch table → reply
   core/                  — pure modules (no I/O; unit-tested in Node; tests live alongside as *.test.js, kept off the push by .claspignore)
     Formatter.js         — quote data → the message string (display-rules table; ADR 006 §10)
     CommandParser.js     — raw SMS body → parsed command intent
+    Replies.js           — all command-reply copy (warm, says what happened + next step)
     Tickers.js           — canonical ticker text rules for shell callers (normalize once at the boundary)
+    Redactor.js          — scrubs secret-shaped substrings before anything is logged
+    SecureCompare.js     — constant-time string equality for the auth gate
 .clasp.json              — clasp config (GITIGNORED — contains script ID)
 .gitignore               — excludes .clasp.json, secrets, node_modules, coverage
 README.md                — orientation; full setup lives in doc/dev/PROCESSES.md
@@ -124,6 +128,13 @@ Twilio POSTs form-encoded data. Read `e.parameter.Body` and `e.parameter.From`.
   - Unrecognized — reply with the same short help message
   - Parsing is deliberately lenient: words after the command are ignored
     (`add TSLA please` adds TSLA; only the FIRST token after add/remove is the ticker)
+  - An argument that isn't even ticker-shaped (`add $$$$$`) is refused for free with a
+    friendly "doesn't look like a ticker" reply — no Alpha Vantage call is spent
+  - A write that loses the storage lock replies "busy — try again" (ADR 006 §5)
+  - **Carrier-keyword caveat:** `STOP` is intercepted by Twilio/the carrier as a full
+    opt-out (error 21610 on all sends after) and only `START` — not `resume` — undoes
+    it. Help copy steers the recipient to `pause`/`resume`; texting `HELP` may produce
+    a second, carrier-generated reply. Accepted platform behavior.
 - Every command sends a confirmation SMS back via Twilio REST API (not TwiML response)
 
 ### Error handling (runs unattended — this matters)

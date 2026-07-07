@@ -149,6 +149,29 @@ describe('Config.validateForAlert', () => {
   });
 });
 
+describe('Config.validateForWebhook', () => {
+  test('passes without the 8b-only secrets — an unused key can never dark-fail a command', () => {
+    const webhookOnly = { ...ALL_KEYS_SET };
+    delete webhookOnly.UNLOCK_SECRET;
+    delete webhookOnly.VERIFIER_KEY;
+    installPropertiesService(webhookOnly);
+    expect(() => Config.validateForWebhook()).not.toThrow();
+  });
+
+  test('still fails loudly when a key the webhook actually uses is missing', () => {
+    const partial = { ...ALL_KEYS_SET };
+    delete partial.WEBHOOK_TOKEN;
+    installPropertiesService(partial);
+    expect(() => Config.validateForWebhook()).toThrow(/WEBHOOK_TOKEN/);
+  });
+
+  test('every webhook key is also a required key (the sets stay consistent)', () => {
+    for (const key of Config.WEBHOOK_KEYS) {
+      expect(Config.REQUIRED_KEYS).toContain(key);
+    }
+  });
+});
+
 describe('Config.isDebugMode', () => {
   test('true only for the literal string "true"', () => {
     installPropertiesService({ DEBUG_MODE: 'true' });

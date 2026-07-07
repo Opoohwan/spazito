@@ -31,9 +31,22 @@ const Config = {
     'VERIFIER_KEY',        // HMAC key for the [#N TAG] signature (ADR 008 §6)
   ],
 
-  // Every key that must be set for a FULL deployment (alert + webhook).
-  // The webhook path (doPost) needs all of these: commands fetch prices,
-  // reply via Twilio, pass the URL-token gate, and can re-arm after lockout.
+  // The keys the WEBHOOK path needs TODAY (doPost): commands fetch prices,
+  // reply via Twilio, and pass the URL-token gate. Chunk 8b adds
+  // UNLOCK_SECRET / VERIFIER_KEY here when the code actually reads them —
+  // a not-yet-used secret must never dark-fail a working command
+  // (Chunk 8a gate).
+  WEBHOOK_KEYS: [
+    'ALPHA_VANTAGE_KEY',
+    'TWILIO_SID',
+    'TWILIO_AUTH_TOKEN',
+    'TWILIO_FROM_NUMBER',
+    'RECIPIENT_NUMBER',
+    'WEBHOOK_TOKEN',
+  ],
+
+  // Every key that must be set for a FULL deployment (alert + webhook +
+  // the 8b security features). The deploy checklist runs this once.
   REQUIRED_KEYS: [
     'ALPHA_VANTAGE_KEY',
     'TWILIO_SID',
@@ -102,6 +115,15 @@ const Config = {
    */
   validateForAlert() {
     this._validate(this.ALERT_KEYS);
+  },
+
+  /**
+   * Validate only what doPost needs right now. CommandHandler calls this —
+   * a secret belonging to a not-yet-built feature must not silence the
+   * webhook (same failure-isolation as validateForAlert).
+   */
+  validateForWebhook() {
+    this._validate(this.WEBHOOK_KEYS);
   },
 
   /**

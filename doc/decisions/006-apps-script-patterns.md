@@ -140,7 +140,9 @@ only reach across the boundaries listed. Anything else is bleed.
 | `Tickers` | core | Canonical ticker text rules (normalize once, at the shell boundary) | (nothing) | Any I/O whatsoever |
 | `Redactor` | core | Scrub secret-shaped substrings from strings before they reach a log (§11) | (nothing) | Any I/O whatsoever |
 | `Scheduler` | shell | Orchestrate the daily run + own the time trigger | `Watchlist`, `PriceService`, `Formatter`, `SmsService`, `Config` (validate-for-alert, §8), `Redactor` (log scrub, §11), `ScriptApp` (trigger install) | Fetch, format, persist, or send *itself* |
-| `CommandHandler` | shell | `doPost` entry; authorize, parse, dispatch, reply | `Config`, `CommandParser`, `Replies`, `Watchlist`, `PriceService`, `SmsService` | Contain command business logic inline; format prices |
+| `CommandHandler` | shell | `doPost` entry; authorize, parse, dispatch, reply | `Config`, `SecurityGate`, `CommandParser`, `Replies`, `Tickers`, `Watchlist`, `PriceService`, `SmsService`, `Redactor` (log scrub, §11), `ContentService` (the empty-200 response) | Contain command business logic inline; format prices; make auth decisions itself |
+| `SecurityGate` | shell | The webhook AUTHORIZATION decision (ADR 008 gate: token → From → replay → lockout) | `Config` (secrets, fresh), `SecureCompare` | Act on commands; send; touch watchlist state |
+| `SecureCompare` | core | Constant-time string equality for the auth gate | (nothing) | Any I/O whatsoever |
 
 **Invariant:** `PriceService` is the only module that names Alpha Vantage or its
 endpoint. `SmsService` is the only module that names Twilio. If a second module needs

@@ -64,8 +64,10 @@ Condensed from the README. Order matters.
    secrets, plus `DEBUG_MODE` if iterating.
 4. `clasp push`
 5. `clasp deploy` → copy the resulting web-app URL
-6. In the Twilio console, set the number's "A message comes in" webhook to that URL,
-   method **POST**
+6. In the Twilio console, set the number's "A message comes in" webhook to that URL
+   (including the `?k=<WEBHOOK_TOKEN>` query), method **POST**. Leave the **Fallback
+   URL empty** — a fallback pointed at the same URL would re-run commands (and re-spend
+   `add` validations) whenever the primary errors, until the 8b replay lock lands.
 7. Install the Mon–Fri 5pm trigger — push alone does **not** do this; the trigger is
    runtime state, not source. The reliable path: `clasp open`, select `createTrigger`
    in the editor's function dropdown, click **Run**. (`clasp run createTrigger` does

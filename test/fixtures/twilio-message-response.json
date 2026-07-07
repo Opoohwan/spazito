@@ -29,6 +29,12 @@
     "more_info": "https://www.twilio.com/docs/errors/20003",
     "status": 401
   },
+  "optedOut": {
+    "code": 21610,
+    "message": "The message From/To pair violates a blacklist rule. Attempt to send to unsubscribed recipient",
+    "more_info": "https://www.twilio.com/docs/errors/21610",
+    "status": 400
+  },
   "trialUnverified": {
     "code": 21608,
     "message": "The number +17075559876 is unverified. Trial accounts cannot send messages to unverified numbers; verify +17075559876 at twilio.com/user/account/phone-numbers/verified, or purchase a Twilio number to send messages to unverified numbers.",

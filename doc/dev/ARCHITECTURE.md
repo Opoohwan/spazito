@@ -1,10 +1,9 @@
 # Spazito — Architecture
 
-> **Status: design blueprint.** `src/` is not yet implemented. This document
-> describes the intended system exactly as the ADRs specify it. Where it names a
-> module or behavior that isn't built yet, that is the target, not a claim of
-> current state. The binding rules live in **ADR 006** (`doc/decisions/`); this is
-> the map, that is the law.
+> **Status: implemented through Chunk 8a** (all modules below exist and are
+> tested except the Chunk 8b security-vault features: MessageSid replay,
+> auto-lockout, audit log, and the `[#N TAG]` message signer). The binding
+> rules live in **ADR 006** (`doc/decisions/`); this is the map, that is the law.
 
 ## What Spazito is
 
@@ -74,11 +73,15 @@ Condensed from ADR 006 §4 (the No-Bleed Boundary Map). Each module owns one thi
 | `Watchlist` | shell | Own all **mutable state** (tickers, paused) and its schema |
 | `PriceService` | shell | The **only** caller of Alpha Vantage |
 | `SmsService` | shell | The **only** caller of Twilio |
-| `core/Formatter` | core | Quote data → the message string (money rules; empty & all-failed cases) |
+| `SecurityGate` | shell | The webhook **authorization decision** (ADR 008 layered gate) |
+| `Scheduler` | shell | Orchestrate the daily run + own the time trigger |
+| `CommandHandler` | shell | `doPost`: gate → parse → dispatch → reply |
+| `core/Formatter` | core | Quote data → the message string (money rules; empty & all-failed; `allFailed` classifier) |
 | `core/CommandParser` | core | Raw SMS body → a parsed command intent |
 | `core/Replies` | core | Command reply / help / error copy strings |
-| `Scheduler` | shell | Orchestrate the daily run — nothing else |
-| `CommandHandler` | shell | `doPost`: layered auth gate (ADR 008) → parse → dispatch → reply |
+| `core/Tickers` | core | Canonical ticker text rules (normalize + format allowlist) |
+| `core/Redactor` | core | Scrub secret-shaped substrings before anything reaches a log |
+| `core/SecureCompare` | core | Constant-time string equality for the auth gate |
 
 ---
 

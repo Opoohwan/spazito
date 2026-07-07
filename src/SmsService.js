@@ -120,6 +120,17 @@ const SmsService = {
       // Twilio refused. Log the numeric error code (the key to
       // twilio.com/docs/errors) with the text scrubbed of numbers/SIDs.
       const errorBody = this._parseErrorBody(response.getContentText());
+      if (errorBody.code === '21610') {
+        // NOT transient: the recipient texted STOP, and the CARRIER now
+        // blocks every message from this number. No code path can fix it —
+        // only the recipient texting START. Logged distinctly so this is
+        // never chased as a Twilio outage (Chunk 8a gate, twilio-expert).
+        console.error(
+          'Twilio 21610: the recipient has OPTED OUT at the carrier level (texted STOP). ' +
+          'All sends are blocked until they text START. This is not an outage.'
+        );
+        return { outcome: this.OUTCOME.FAILED };
+      }
       console.error(
         'Twilio send failed: HTTP ' + status +
         ', code ' + errorBody.code + ': ' + Redactor.scrub(errorBody.message)

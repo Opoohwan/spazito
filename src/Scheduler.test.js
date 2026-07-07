@@ -253,6 +253,16 @@ describe('trigger installation (createTrigger — run once per deployment)', () 
   });
 });
 
+describe('cross-module copy tripwire', () => {
+  test('Replies\' human schedule phrase matches Scheduler.ALERT_HOUR — change them together', () => {
+    // If the alert hour ever moves, this fails and points at the copy in
+    // Replies that would otherwise silently lie about when texts arrive.
+    const { Replies } = require('./core/Replies');
+    expect(Scheduler.ALERT_HOUR).toBe(17);
+    expect(Replies.SCHEDULE_PHRASE).toContain('5pm');
+  });
+});
+
 describe('the GAS entry points delegate — no logic of their own', () => {
   test('runDailyAlert() and testSendNow() both run the full flow', () => {
     for (const entryPoint of [runDailyAlert, testSendNow]) {

@@ -143,6 +143,14 @@ describe('failures log and return — never throw (ADR 006 §9)', () => {
     expect(allLoggedText()).toContain('[number redacted]');
   });
 
+  test('a carrier opt-out (21610, recipient texted STOP) gets its own explanatory log — not an outage', () => {
+    installConfig();
+    installUrlFetchApp({ code: 400, body: fixture.optedOut });
+    expect(SmsService.send('hello')).toEqual({ outcome: 'failed' });
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('OPTED OUT'));
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('START'));
+  });
+
   test('a trial-account unverified-number refusal (21608) logs its code — the onboarding trap', () => {
     installConfig();
     installUrlFetchApp({ code: 400, body: fixture.trialUnverified });
