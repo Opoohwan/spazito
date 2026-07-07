@@ -8,6 +8,51 @@ setup. Everything else is in `git log`.
 
 ## [Unreleased]
 
+**The build (Chunks 0–8b).** The entire system now exists and is tested: 342 Jest
+tests, 100% coverage on every file, enforced by config (core pinned at 100%, per-file
+shell floors). Nine gated chunks, each one commit, each passed through the council
+before landing:
+
+- **Chunk 0** — scaffold + harness: the manifest (in `src/`, `rootDir` contract),
+  `.claspignore` push-safety, Jest with the enforced coverage gate, and the dual-load
+  pipeline proven end to end.
+- **Chunks 1–2** — `Config` (fail-loud secrets, entry-point-scoped validation so a
+  webhook-only key can never kill the 5pm text) and `Watchlist` (locked writes,
+  self-healing reads that enforce the ticker allowlist and the ADR 007 cap at the
+  boundary that feeds API URLs).
+- **Chunks 3–4** — the pure core: `Formatter` (the money rules — locale-safe grouping,
+  float-boundary pins, `n/a` in place, nothing but ASCII in a signable payload) and
+  `CommandParser` (every command + alias, total function, raw args preserved for the
+  case-sensitive unlock secret).
+- **Chunks 5–6** — the API owners: `PriceService` (rate-limit short-circuit, budget
+  clamps, the `api_error` envelope so a bad key never reads as "couldn't find TICKER",
+  and log redaction after a source-verified finding that real GAS network exceptions
+  embed the key-bearing URL) and `SmsService` (scoped-key auth with a warned fallback,
+  DEBUG_MODE zero-spend, phone numbers scrubbed from every log path, 21610/21608
+  handled by name). `core/Redactor` became the one owner of log redaction.
+- **Chunk 7** — `Scheduler`: validate → paused-check → fetch → format → sign → send,
+  with a dead run re-thrown so the execution goes red and Google's failure email fires
+  (a swallowed error looked "Completed" and hid silent death); idempotent Mon–Fri
+  trigger install with post-install verification.
+- **Chunk 8a** — the inbound path: `CommandHandler` (`doPost`: gate first, dispatch
+  table, one REST reply, always an empty 200), `core/Replies` (all the warm copy),
+  `SecurityGate` + `core/SecureCompare`. The gate surfaced the **carrier STOP trap**
+  (STOP opts out at the carrier; only START — not `resume` — undoes it; error 21610
+  now explains itself) and the help copy steers around it.
+- **Chunk 8b** — the security vault: `SecurityVault` (sequence counter, lockout,
+  replay set, hashed-sender audit ring), `Signer` (`[#N TAG]` matching the offline
+  verifier byte-for-byte — golden-vector tested against an independent HMAC
+  implementation AND against the live verifier file), the full layered gate, `log` +
+  `unlock` commands, `Locks` as the one home of the script-lock discipline. The
+  full-panel gate caught the lockout being a **self-DoS timebomb** (ambient spam could
+  seal the bot; floods could drain the storage quota) — redesigned so only token-valid
+  failures count, hostile traffic costs one read and zero writes, and the sealing
+  moment sends the one-time 🔒 notice.
+
+**Process note:** gates ran budget-tiered from Chunk 7 on (mechanical grep invariants
+run free by the orchestrator; lean panels for small chunks; the full panel for the
+vault) — the catches above are why the council stayed worth its cost.
+
 **The foundation.** Before a line of `src/` exists, Spazito's architecture is fully
 decided and written down — the deliberate order, so the rules shape the code as it's
 written instead of being bolted on after.
