@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spazito SMS Alerts — Sign Up, Privacy &amp; Terms</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; line-height: 1.55; color: #1a1a1a; }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.15rem; margin-top: 1.8rem; }
+  .form { border: 1px solid #ccc; border-radius: 10px; padding: 20px; background: #f7f9fc; margin: 20px 0; }
+  label { display: block; margin: 10px 0 4px; font-weight: 600; }
+  input[type=tel] { width: 100%; padding: 10px; font-size: 1rem; box-sizing: border-box; }
+  .consent { display: flex; gap: 8px; margin: 14px 0; font-weight: 400; align-items: flex-start; }
+  .consent input { margin-top: 4px; }
+  button { background: #1a56db; color: #fff; border: 0; border-radius: 8px; padding: 12px 18px; font-size: 1rem; cursor: pointer; }
+  .fine { color: #555; }
+  #done { display: none; color: #0a7f2e; font-weight: 600; margin-top: 12px; }
+</style>
+</head>
+<body>
+<h1>Spazito — Daily Market Price Text Alerts</h1>
+<p>Spazito sends a daily text with stock and precious-metals prices
+(for example, <em>"S&amp;P 751 | Gold 382 | Silver 56.11"</em>) to people who sign up.
+Recipients can text commands back (ADD, REMOVE, LIST, PAUSE, RESUME, HELP) to manage
+their tickers and pause or resume alerts.</p>
+
+<div class="form">
+  <h2 style="margin-top:0">Sign up for text alerts</h2>
+  <form id="optin" onsubmit="return optin(event)">
+    <label for="phone">Mobile number</label>
+    <input type="tel" id="phone" name="phone" placeholder="+1 555 555 5555" required>
+    <label class="consent">
+      <input type="checkbox" id="agree" required>
+      <span>I agree to receive recurring automated text messages (daily market price
+      alerts) from Spazito at the number above. Consent is not a condition of any
+      purchase. Message frequency is approximately one message per weekday. Message and
+      data rates may apply. Reply STOP to opt out, HELP for help. See the Privacy Policy
+      and Terms below.</span>
+    </label>
+    <button type="submit">Sign up</button>
+    <div id="done">Thanks &mdash; you're signed up. You'll start receiving daily alerts.</div>
+  </form>
+</div>
+
+<h2>Message frequency &amp; rates</h2>
+<p>Approximately one message per weekday. <strong>Message and data rates may apply.</strong></p>
+
+<h2>Opt out &amp; help</h2>
+<p>Reply <strong>STOP</strong> at any time to stop receiving messages. Reply
+<strong>HELP</strong> for assistance.</p>
+
+<h2>Privacy Policy</h2>
+<p>We collect only the recipient's mobile phone number, provided directly by that
+person, solely to deliver the requested alerts and process their commands.
+<strong>We do not sell, rent, or share recipients' mobile numbers, opt-in information,
+or any personal information with third parties or affiliates for any purpose, including
+marketing or promotional purposes.</strong> Information is used only to operate this
+service.</p>
+
+<h2>Terms of Use</h2>
+<p>Spazito provides market price information for personal, informational purposes only.
+It is not financial advice, and no guarantee is made as to accuracy, timeliness, or
+availability. The service is provided "as is," without warranty, for the personal use
+of subscribers.</p>
+
+<p class="fine">Contact: dnclyon@gmail.com &middot; Last updated: July 7, 2026</p>
+
+<script>
+  function optin(e) {
+    e.preventDefault();
+    document.getElementById('done').style.display = 'block';
+    return false;
+  }
+</script>
+</body>
+</html>
