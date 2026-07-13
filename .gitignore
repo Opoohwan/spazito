@@ -11,6 +11,11 @@ node_modules/
 # Jest coverage output
 coverage/
 
+# Claude Code local permission cache (machine-specific; the agents/ and
+# commands/ under .claude/ ARE tracked — they're part of how this was built)
+.claude/settings.json
+.claude/settings.local.json
+
 # OS noise
 .DS_Store
 Thumbs.db
