@@ -211,6 +211,16 @@ Source is authored as `.js` (so Node/Jest load it directly) and pushed to Apps S
 it runs as `.gs` in one shared global scope. A one-line dual-load guard makes each file work
 in both worlds.
 
+> **⚠️ One thing not to copy from us.** Our tests sit next to the code they test
+> (`src/Config.js` beside `src/Config.test.js`). That's normal in JavaScript — but here,
+> **`src/` is what gets deployed.** A `.test.js` file that reaches Apps Script throws on load
+> and **silently kills every execution in the project**. The only thing stopping that is a
+> pattern in `.claspignore`. If you're starting fresh, put your tests in a matching `test/`
+> tree so that `src/` holds *only* code that ships, and deploying a test file becomes
+> impossible by construction. We left ours alone because the app was already live, and you
+> don't rearrange a working system for tidiness — but you don't have to inherit the risk.
+> ([ADR 006 §12](doc/decisions/006-apps-script-patterns.md))
+
 **The design is documented before the code.** Eight ADRs in [`doc/decisions/`](doc/decisions/)
 record every load-bearing choice and *why* — serverless on Apps Script, state in
 PropertiesService with no database, the functional-core seam, living inside the Alpha Vantage

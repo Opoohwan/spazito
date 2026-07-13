@@ -407,6 +407,40 @@ The core exists so it can be tested. Testing is not optional.
 - **Test files must never reach Apps Script.** A `.claspignore` (with `rootDir: "src"`)
   keeps `*.test.js`/`jest.config.js` off the push — a pushed test file's top-level
   `require` throws at load and silently kills every execution. Lands in Chunk 0.
+
+### Layout note — read this before you copy our structure
+
+We put tests next to the code they test (`src/Config.js` beside `src/Config.test.js`). That
+is normal JavaScript practice, and we would defend it in any ordinary project. **Here it is
+a real hazard, and we would rather say so plainly than have you copy it without knowing.**
+
+The problem: `src/` is not just a source folder — **it is what gets deployed.** `clasp`
+pushes it as-is. So the one directory that must contain *only* shippable code also holds
+files that would **break the entire app** if they ever shipped, and the only thing preventing
+that is a pattern in `.claspignore`. A config file is the last line of defense for whether
+the app runs at all. (A smaller inconsistency: `test/` already exists — it holds
+`gasMocks.js`, `gasScope.js`, and `fixtures/` — so the test suite is split across two places.)
+
+**If you are starting fresh, put the tests in a matching tree instead:**
+
+```
+src/                 <- ONLY things that get deployed. Nothing else. Ever.
+  Config.js
+  core/Formatter.js
+test/
+  Config.test.js
+  core/Formatter.test.js
+  gasMocks.js
+  fixtures/
+```
+
+That changes "a stray file in the wrong directory breaks the app, and a pattern in a config
+file prevents it" into "**deploying a test file is impossible by construction.**" Keep
+`.claspignore` as a backup, but it stops being the thing the app's survival rests on.
+
+We left ours as it is because the app was already built, tested, deployed, and delivering —
+and you do not rearrange a working system for tidiness. That was a deliberate choice, not an
+oversight. Yours does not have to inherit it.
 - **Golden fixtures.** The Alpha Vantage and Twilio mocks are built from *captured real
   responses*, so the mocks cannot drift from the live API contract.
 - **`DEBUG_MODE`** exercises the shell flow without Twilio spend (it does not stop Alpha
