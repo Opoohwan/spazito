@@ -3,69 +3,193 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spazito Alerts — Sign Up, Privacy &amp; Terms</title>
-<style>
-  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; line-height: 1.55; color: #1a1a1a; }
-  h1 { font-size: 1.6rem; }
-  h2 { font-size: 1.15rem; margin-top: 1.8rem; }
-  .form { border: 1px solid #ccc; border-radius: 10px; padding: 20px; background: #f7f9fc; margin: 20px 0; }
-  label { display: block; margin: 10px 0 4px; font-weight: 600; }
-  input[type=tel] { width: 100%; padding: 10px; font-size: 1rem; box-sizing: border-box; }
-  .consent { display: flex; gap: 8px; margin: 14px 0; font-weight: 400; align-items: flex-start; }
-  .consent input { margin-top: 4px; }
-  button { background: #1a56db; color: #fff; border: 0; border-radius: 8px; padding: 12px 18px; font-size: 1rem; cursor: pointer; }
-  .fine { color: #555; }
-  #done { display: none; color: #0a7f2e; font-weight: 600; margin-top: 12px; }
-</style>
+<title>Spazito — Daily Market Price Alerts by Text</title>
+<meta name="description" content="Spazito is an automated notification service that texts you a daily summary of stock and precious-metals prices. Manage your watchlist by text. No app required.">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Spazito — Automated Market Price Text Alerts</h1>
-<p>Spazito is an automated notification service. Its software sends a scheduled daily
-text message with stock and precious-metals prices
-(for example, <em>"S&amp;P 751 | Gold 382 | Silver 70.00"</em>) to users who subscribe
-below. Messages are generated automatically by the application on a weekday schedule.
-Subscribers can text commands (ADD, REMOVE, LIST, PAUSE, RESUME, HELP) to choose which
-tickers they receive and to pause or resume their alerts.</p>
 
-<div class="form">
-  <h2 style="margin-top:0">Sign up for text alerts</h2>
-  <form id="optin" onsubmit="return optin(event)">
-    <label for="phone">Mobile number</label>
-    <input type="tel" id="phone" name="phone" placeholder="+1 555 555 5555" required>
-    <label class="consent">
-      <input type="checkbox" id="agree" required>
-      <span>I agree to receive recurring automated text messages (daily market price
-      alerts) from the Spazito application at the number above. Consent is not a condition
-      of any purchase. Message frequency is approximately one message per weekday. Message
-      and data rates may apply. Reply STOP to opt out, HELP for help.</span>
-    </label>
-    <p style="margin:4px 0 14px;"><a href="#terms">Terms of Service</a> &middot; <a href="#privacy">Privacy Policy</a></p>
-    <button type="submit">Yes, sign me up!</button>
-    <div id="done">Thanks &mdash; you're subscribed. You'll start receiving daily alerts.</div>
-  </form>
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="index.html">Spaz<span>ito</span></a>
+    <nav class="nav-links">
+      <a href="index.html" class="active">Home</a>
+      <a href="#how">How it works</a>
+      <a href="#signup">Sign up</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Market prices, texted to you every weekday.</h1>
+    <p class="lead">Spazito is an automated notification service. Every weekday afternoon it
+    sends you one text with the prices you care about — stocks, gold, silver — so you can
+    glance at your phone instead of opening yet another app. Manage your watchlist by
+    texting back.</p>
+    <a class="btn" href="#signup">Sign up for alerts</a>
+  </div>
 </div>
 
-<h2>Message frequency &amp; rates</h2>
-<p>Approximately one automated message per weekday. <strong>Message and data rates may apply.</strong></p>
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="sub">Three steps, then it runs itself.</p>
+    <div class="grid">
+      <div class="card">
+        <span class="num">1</span>
+        <h3>Subscribe</h3>
+        <p>Enter your mobile number below and check the consent box. That's the whole signup —
+        no account, no password, no app to install.</p>
+      </div>
+      <div class="card">
+        <span class="num">2</span>
+        <h3>Get your daily text</h3>
+        <p>Our software automatically sends one message each weekday afternoon with the current
+        price of everything on your watchlist.</p>
+      </div>
+      <div class="card">
+        <span class="num">3</span>
+        <h3>Text back to customize</h3>
+        <p>Reply with simple commands to add or remove tickers, see your list, or pause the
+        alerts whenever you want.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-<h2>Opt out &amp; help</h2>
-<p>Reply <strong>STOP</strong> at any time to stop receiving messages. Reply
-<strong>HELP</strong> for assistance.</p>
+<section id="features">
+  <div class="wrap">
+    <h2>What you get</h2>
+    <p class="sub">A deliberately small tool that does one thing well.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Automated daily alerts</h3>
+        <p>Messages are generated automatically by the application on a fixed weekday schedule.
+        You don't have to ask for them.</p>
+      </div>
+      <div class="card">
+        <h3>Your own watchlist</h3>
+        <p>Track the S&amp;P, gold, and silver out of the box — then add or remove any ticker
+        you like, just by texting.</p>
+      </div>
+      <div class="card">
+        <h3>Pause anytime</h3>
+        <p>Text <strong>pause</strong> to stop the alerts and <strong>resume</strong> to start
+        them again. Text <strong>STOP</strong> to unsubscribe entirely.</p>
+      </div>
+      <div class="card">
+        <h3>Verifiable messages</h3>
+        <p>Every alert carries a signed code so you can confirm it genuinely came from your
+        service and wasn't altered or spoofed.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-<h2 id="privacy">Privacy Policy</h2>
-<p>Spazito collects only the subscriber's mobile phone number, submitted through the
-opt-in form above, solely to deliver the requested automated alert messages and to
-process the commands they send. <strong>We do not sell, rent, or share subscribers'
-mobile numbers, opt-in information, or any personal information with third parties or
-affiliates for any purpose, including marketing or promotional purposes.</strong>
-Information is used only to operate this alert service.</p>
+<section id="samples">
+  <div class="wrap">
+    <h2>What the texts look like</h2>
+    <p class="sub">Short, scannable, no fluff.</p>
+    <div class="samples">
+      <div class="bubble">
+        <span class="who">Your daily alert</span>
+        S&amp;P 751 | Gold 382 | Silver 70.00 [#1 447312F7]
+      </div>
+      <div class="bubble out">
+        <span class="who">You text</span>
+        add TSLA
+      </div>
+      <div class="bubble">
+        <span class="who">Spazito replies</span>
+        Added TSLA! Now tracking: SPY, GLD, SLV, TSLA.
+      </div>
+      <div class="bubble out">
+        <span class="who">You text</span>
+        list
+      </div>
+      <div class="bubble">
+        <span class="who">Spazito replies</span>
+        Tracking: SPY, GLD, SLV, TSLA. Daily prices are active, around 5pm on weekdays.
+      </div>
+    </div>
+  </div>
+</section>
 
-<h2 id="terms">Terms of Service</h2>
-<p>Spazito delivers market price information for informational purposes only. It is not
-financial advice, and no guarantee is made as to accuracy, timeliness, or availability.
-The service is provided "as is," without warranty, to subscribers who opt in.</p>
+<section id="signup">
+  <div class="wrap">
+    <h2>Sign up for text alerts</h2>
+    <p class="sub">Enter your mobile number and consent to receive the automated alerts.</p>
 
-<p class="fine">Contact: dnclyon@gmail.com &middot; Last updated: July 8, 2026</p>
+    <div class="signup">
+      <form id="optin" onsubmit="return optin(event)">
+        <label for="phone">Mobile number</label>
+        <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" required>
+
+        <label class="consent" for="agree">
+          <input type="checkbox" id="agree" required>
+          <span>I agree to receive recurring automated text messages (daily market price
+          alerts) from Spazito at the number provided. Consent is not a condition of any
+          purchase. Message frequency is approximately one message per weekday. Message and
+          data rates may apply. Reply STOP to opt out, HELP for help.</span>
+        </label>
+
+        <p class="policy-links">
+          <a href="terms.html">Terms of Service</a> &nbsp;&middot;&nbsp;
+          <a href="privacy.html">Privacy Policy</a>
+        </p>
+
+        <button class="btn" type="submit">Yes, sign me up!</button>
+        <div id="done">Thanks — you're subscribed. Your first daily alert arrives on the next weekday.</div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="faq">
+  <div class="wrap">
+    <h2>Frequently asked questions</h2>
+
+    <h3>When do the texts arrive?</h3>
+    <p>Once per weekday, in the late afternoon (around 5pm Pacific). Nothing on weekends.</p>
+
+    <h3>How much does it cost?</h3>
+    <p>Spazito is free to receive. Standard message and data rates from your mobile carrier
+    may apply.</p>
+
+    <h3>What can I track?</h3>
+    <p>You start with the S&amp;P 500, gold, and silver. Text <strong>add</strong> followed by
+    any ticker symbol to track more, and <strong>remove</strong> to drop one.</p>
+
+    <h3>How do I stop the messages?</h3>
+    <p>Text <strong>pause</strong> to temporarily stop the daily alerts, or <strong>STOP</strong>
+    to unsubscribe completely. Text <strong>HELP</strong> at any time for assistance.</p>
+
+    <h3>Is this financial advice?</h3>
+    <p>No. Spazito delivers publicly available price information for informational purposes
+    only. It is not financial advice, and no guarantee is made as to accuracy or timeliness.</p>
+
+    <h3>Will my number be shared?</h3>
+    <p>Never. We do not sell, rent, or share subscriber phone numbers or opt-in information
+    with anyone, for any purpose. See the <a href="privacy.html">Privacy Policy</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <div>
+      <strong>Spazito</strong> — automated market price alerts<br>
+      Message and data rates may apply. Reply STOP to opt out, HELP for help.
+    </div>
+    <div>
+      <a href="privacy.html">Privacy Policy</a> &middot;
+      <a href="terms.html">Terms of Service</a><br>
+      Contact: <a href="mailto:dnclyon@gmail.com">dnclyon@gmail.com</a>
+    </div>
+  </div>
+</footer>
 
 <script>
   function optin(e) {

@@ -1,0 +1,183 @@
+:root {
+  --ink: #16202c;
+  --muted: #5b6b7c;
+  --line: #dfe5ec;
+  --brand: #1a56db;
+  --brand-dark: #14429f;
+  --bg-soft: #f5f8fc;
+  --ok: #0a7f2e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ink);
+  line-height: 1.6;
+  background: #fff;
+}
+
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+/* ---- header / nav ---- */
+header {
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  flex-wrap: wrap;
+}
+.brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.brand span { color: var(--brand); }
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  margin-left: 18px;
+  font-size: 0.95rem;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--brand); }
+
+/* ---- hero ---- */
+.hero {
+  padding: 56px 0 40px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #fbfdff 0%, #fff 100%);
+}
+.hero h1 {
+  font-size: 2.1rem;
+  line-height: 1.2;
+  margin: 0 0 14px;
+  letter-spacing: -0.02em;
+}
+.hero p.lead {
+  font-size: 1.12rem;
+  color: var(--muted);
+  margin: 0 0 24px;
+  max-width: 620px;
+}
+.btn {
+  display: inline-block;
+  background: var(--brand);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover { background: var(--brand-dark); }
+
+/* ---- sections ---- */
+section { padding: 44px 0; border-bottom: 1px solid var(--line); }
+section:last-of-type { border-bottom: 0; }
+h2 { font-size: 1.4rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+h3 { font-size: 1.05rem; margin: 0 0 6px; }
+.sub { color: var(--muted); margin: 0 0 26px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 22px;
+}
+.card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  background: #fff;
+}
+.card .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+/* ---- phone / sample messages ---- */
+.samples { background: var(--bg-soft); border-radius: 14px; padding: 22px; }
+.bubble {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 15px;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  max-width: 480px;
+  box-shadow: 0 1px 2px rgba(20,40,70,.05);
+}
+.bubble:last-child { margin-bottom: 0; }
+.bubble .who { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.bubble.out { background: #eef3fe; border-color: #d6e2fb; margin-left: auto; }
+
+/* ---- signup form ---- */
+.signup {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  background: var(--bg-soft);
+}
+label { display: block; font-weight: 600; margin: 12px 0 6px; }
+input[type=tel] {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 16px 0;
+  font-weight: 400;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+.consent input { margin-top: 5px; flex: 0 0 auto; }
+.policy-links { font-size: 0.9rem; margin: 0 0 16px; }
+.policy-links a { color: var(--brand); }
+#done { display: none; color: var(--ok); font-weight: 600; margin-top: 14px; }
+
+/* ---- faq ---- */
+.faq h3 { margin-top: 20px; }
+.faq p { margin: 0 0 4px; color: var(--muted); }
+
+/* ---- legal pages ---- */
+.legal h2 { margin-top: 32px; }
+.legal p, .legal li { color: #2b3846; }
+.legal .updated { color: var(--muted); font-size: 0.92rem; }
+
+/* ---- footer ---- */
+footer {
+  border-top: 1px solid var(--line);
+  padding: 28px 0 40px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  background: var(--bg-soft);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer .foot-row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
