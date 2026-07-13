@@ -6,7 +6,9 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 Automated SMS market price alerts — texts the user's phone every weekday at 5:00pm with prices for S&P 500, Gold, and Silver (and any customized watchlist). The recipient can text commands back to control what gets tracked and whether alerts are active.
 
-Runs entirely on free-tier infrastructure. No server, no database.
+No server, no database. Google Apps Script and Alpha Vantage are free; **the SMS leg is not**
+— US carrier registration (see the README) puts a floor of ~$28–30/yr on Twilio. An earlier
+version of these docs claimed the whole thing ran free; that was wrong.
 
 ## Stack
 
