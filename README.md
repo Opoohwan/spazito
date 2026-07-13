@@ -246,6 +246,17 @@ texted — that would just relay ambient spam to the recipient.
 The offline verifier and the server-side signer are pinned to each other by golden-vector
 tests. Provision the key **out of band, split across two channels** — never email it.
 
+**What the recipient actually receives.** Two files, and neither one can be emailed casually:
+
+- [`tools/spazito-verifier.html`](tools/spazito-verifier.html) — the offline verifier. Safe to
+  send; the security is in the key, not the tool.
+- [`tools/owners-manual.html`](tools/owners-manual.html) — a printable **fold-over owner's
+  manual**. One sheet of letter paper, printed double-sided, folded in half into a 4-page
+  booklet: the commands, the "never text STOP" warning, how to verify a message, and what to
+  do if the bot seals itself. The key and unlock phrase are **editable fields you fill in the
+  browser and print** — they're never written to disk, so a filled-in copy can't leak into
+  your repo. Print it, fold it, and mail it with the key.
+
 ---
 
 ## Setup

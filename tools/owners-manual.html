@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spazito — Owner's Manual (fold-over booklet)</title>
+<style>
+  /* One sheet of 8.5x11, printed landscape double-sided, folded in half
+     down the middle => a 5.5 x 8.5 four-page booklet.
+     Imposition:  Sheet A = [ back cover | front cover ]
+                  Sheet B = [ inside-left | inside-right ] */
+
+  @page { size: 11in 8.5in; margin: 0; }
+
+  :root {
+    --ink: #1b2430;
+    --muted: #6d7885;
+    --line: #d8dfe7;
+    --brand: #12508f;
+    --accent: #b0501e;
+    --paper: #fffdf9;
+  }
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #6d7683;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    color: var(--ink);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sheet {
+    width: 11in;
+    height: 8.5in;
+    display: flex;
+    background: var(--paper);
+    margin: 22px auto;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+    position: relative;
+  }
+  /* subtle fold guide, screen only */
+  .sheet::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    border-left: 1px dashed #c3ccd6;
+  }
+
+  .panel {
+    width: 5.5in;
+    height: 8.5in;
+    padding: 0.42in 0.40in 0.34in;
+    position: relative;
+    font-size: 10.4pt;
+    line-height: 1.45;
+    display: flex;
+    flex-direction: column;
+  }
+
+  p { margin: 0 0 8px; }
+
+  h2 {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 8pt;
+    letter-spacing: .19em;
+    text-transform: uppercase;
+    color: var(--brand);
+    border-bottom: 1.2px solid var(--line);
+    padding-bottom: 4px;
+    margin: 0 0 9px;
+  }
+  h2 + h2, .blk + h2 { margin-top: 16px; }
+  h3 { font-size: 10.6pt; margin: 10px 0 2px; }
+
+  code, .mono {
+    font-family: "SF Mono", Consolas, "Roboto Mono", monospace;
+    font-size: 0.9em;
+    background: #eaeff4;
+    padding: 0 3px;
+    border-radius: 2px;
+  }
+
+  .txt {
+    font-family: "SF Mono", Consolas, "Roboto Mono", monospace;
+    font-size: 8.6pt;
+    background: #eaeff4;
+    border-left: 2.5px solid var(--brand);
+    padding: 7px 9px;
+    margin: 8px 0;
+    border-radius: 0 3px 3px 0;
+    line-height: 1.45;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
+  td { padding: 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 9.8pt; }
+  td.c { width: 38%; padding-right: 8px; }
+  td.c code { background: #e5ecf3; font-weight: 700; }
+
+  .warn {
+    border: 1.2px solid var(--accent);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin: 9px 0 0;
+    background: #fdf4ef;
+    font-size: 9.6pt;
+    line-height: 1.4;
+  }
+  .warn b { color: var(--accent); }
+
+  .keybox {
+    border: 1.3px dashed var(--ink);
+    border-radius: 3px;
+    padding: 9px 11px;
+    margin: 9px 0;
+    background: #fff;
+  }
+  .keybox .lbl {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 7.4pt;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+  .wl { border-bottom: 1px solid #9aa6b3; height: 20px; margin-bottom: 8px; }
+  .wl:last-child { margin-bottom: 0; }
+
+  /* Type-in-the-browser fields. Nothing is saved to disk. */
+  .fill {
+    font-family: "SF Mono", Consolas, "Roboto Mono", monospace;
+    font-size: 9.6pt;
+    line-height: 1.75;
+    letter-spacing: .04em;
+    min-height: 22px;
+    border-bottom: 1px solid #9aa6b3;
+    outline: none;
+    word-break: break-all;
+    padding: 2px 1px;
+    margin-bottom: 7px;
+  }
+  .fill:last-child { margin-bottom: 0; }
+  .fill:focus { background: #fff8e6; border-bottom-color: var(--brand); }
+  .fill:empty::before {
+    content: attr(data-hint);
+    color: #bcc5ce;
+    font-family: "Iowan Old Style", Georgia, serif;
+    font-style: italic;
+    letter-spacing: 0;
+  }
+  .fill.note {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 10.5pt;
+    letter-spacing: 0;
+    word-break: normal;
+    line-height: 1.9;
+  }
+  @media print {
+    .fill:empty::before { content: ""; }
+    .fill:focus { background: none; }
+  }
+
+  /* editable service number (cover + inline in the commands section) */
+  .num {
+    outline: none;
+    border-bottom: 1px dashed #a8b2bd;
+    min-width: 1.6in;
+    display: inline-block;
+  }
+  .num:focus { background: #fff8e6; border-bottom-color: var(--brand); }
+  .num:empty::before {
+    content: attr(data-hint);
+    color: #bcc5ce;
+    font-style: italic;
+    font-weight: 400;
+  }
+  @media print {
+    .num:empty::before { content: ""; }
+    .num:focus { background: none; }
+    .num { border-bottom: 1px solid #9aa6b3; }
+  }
+
+  ol.steps { margin: 4px 0 8px; padding-left: 17px; font-size: 9.9pt; }
+  ol.steps li { margin-bottom: 3px; }
+
+  .verdict { font-size: 9.5pt; line-height: 1.4; }
+  .verdict div { margin-bottom: 4px; }
+  .vt { font-weight: 700; }
+  .ok { color: #16713a; }
+  .bad { color: #a0231c; }
+  .amb { color: var(--accent); }
+
+  .foot {
+    margin-top: auto;
+    padding-top: 7px;
+    border-top: 1px solid var(--line);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 7pt;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #9ba6b2;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ---------- covers ---------- */
+  .cover { text-align: center; justify-content: center; }
+  .cover .mark {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 8pt; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 20px;
+  }
+  .cover h1 { font-size: 46pt; margin: 0; letter-spacing: -0.02em; line-height: 1; }
+  .cover h1 em { color: var(--brand); font-style: normal; }
+  .cover .tag { font-size: 12pt; font-style: italic; color: var(--muted); margin: 10px 0 22px; }
+  .rule { height: 2px; width: 60px; background: var(--ink); margin: 0 auto 22px; }
+  .card {
+    border: 1.3px solid var(--ink);
+    border-radius: 3px;
+    background: #fff;
+    padding: 13px 15px;
+    text-align: left;
+    margin: 0 auto;
+  }
+  .card .lbl {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 7.2pt; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted); display: block;
+  }
+  .card .val { font-size: 17pt; font-weight: 700; margin: 1px 0 9px; }
+  .card .val:last-child { margin-bottom: 0; }
+  .cover .note {
+    margin-top: 24px; font-size: 10pt; font-style: italic; color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .back { justify-content: flex-start; }
+  .signoff { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .signoff .lbl {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 7.4pt; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 9px;
+  }
+
+  /* ---------- print ---------- */
+  @media print {
+    body { background: #fff; }
+    .sheet {
+      margin: 0;
+      box-shadow: none;
+      page-break-after: always;
+    }
+    .sheet:last-of-type { page-break-after: auto; }
+    .sheet::after { display: none; }
+    .noprint { display: none; }
+  }
+
+  .noprint {
+    max-width: 11in; margin: 18px auto 0; color: #fff;
+    font-family: "Helvetica Neue", Arial, sans-serif; font-size: 13px; line-height: 1.6;
+    background: rgba(0,0,0,.25); padding: 14px 18px; border-radius: 6px;
+  }
+  .noprint b { color: #ffd98a; }
+</style>
+</head>
+<body>
+
+<div class="noprint">
+  <b>Step 1 &mdash; fill it in right here.</b> Click the dashed boxes and type the
+  <b>verifier key</b>, the <b>unlock phrase</b>, and your <b>note</b>. You're typing into the
+  browser, not into a file &mdash; <b>nothing is saved to disk</b>, so the secrets never end up
+  in a file you could accidentally commit to your public repo. (Just don't hit Ctrl-S.)<br><br>
+  <b>Step 2 &mdash; print.</b> Ctrl/Cmd-P &rarr; <b>Landscape</b>, <b>double-sided</b>
+  (flip on <b>short edge</b>), scale <b>100%</b>, margins <b>None</b>.<br>
+  You get <em>one</em> sheet of 8&frac12;&times;11, printed on both sides. Fold it in half down
+  the middle &rarr; a 4-page booklet.<br><br>
+  <b>Step 3 &mdash; close the tab.</b> The typed secrets vanish with it.<br><br>
+  If the inside pages come out upside-down, reprint and switch the duplex flip to
+  <b>long edge</b>. (The dashed line is just the fold guide &mdash; it won't print.)
+</div>
+
+<!-- ================= SHEET A (outside):  [ back cover | front cover ] ================= -->
+<div class="sheet">
+
+  <!-- ---------- PANEL 4 : BACK COVER ---------- -->
+  <div class="panel back">
+    <h2>If the bot goes dark</h2>
+    <p>If someone keeps trying to break in, the bot <b>seals itself</b> and stops answering
+    everyone &mdash; including you. That's deliberate. A bot that goes quiet under attack is
+    safer than one that keeps talking.</p>
+    <p>You'll get <b>one</b> text telling you it happened. To bring it back, text:</p>
+    <div class="txt">unlock <em>your-unlock-phrase</em></div>
+    <p>Case-sensitive &mdash; type it exactly. And the phrase alone isn't enough: it only works
+    from your phone.</p>
+
+    <div class="keybox">
+      <div class="lbl">Your unlock phrase &mdash; keep private</div>
+      <div class="fill" contenteditable="true" spellcheck="false" data-hint="click and type the unlock phrase"></div>
+    </div>
+
+    <p>Curious what it's been fending off? Text <code>log</code> for recent blocked attempts.
+    Senders show as scrambled codes, never phone numbers &mdash; it keeps nobody's number but
+    yours. It won't pester you about this unless you ask.</p>
+
+    <h2>If something seems off</h2>
+    <p><b>No text today?</b> Weekend or market holiday? Before 5pm? Text <code>list</code> &mdash;
+    if it answers, it's alive, and it'll tell you if it's paused.</p>
+    <p><b>A price says "n/a"?</b> That one ticker didn't answer. The rest still came through
+    on purpose &mdash; a partial answer beats none. Usually fixes itself by tomorrow.</p>
+    <p><b>Prices look stale?</b> Market was closed. That <em>is</em> the current price.</p>
+    <p><b>"Busy &mdash; try again"?</b> Two commands collided. Wait a few seconds, resend.</p>
+    <p><b>Nothing works at all?</b> Get hold of whoever set this up for you. They built it.</p>
+
+    <div class="signoff">
+      <div class="lbl">A personal note</div>
+      <div class="fill note" contenteditable="true" data-hint="click and type your note&hellip;"></div>
+      <div class="fill note" contenteditable="true"></div>
+      <div class="fill note" contenteditable="true"></div>
+    </div>
+
+    <div class="foot"><span>Lockout &amp; troubleshooting</span><span>4</span></div>
+  </div>
+
+  <!-- ---------- PANEL 1 : FRONT COVER ---------- -->
+  <div class="panel cover">
+    <div class="mark">Owner's Manual</div>
+    <h1>Spaz<em>ito</em></h1>
+    <div class="tag">Market prices. Texted.<br>Every weekday.</div>
+    <div class="rule"></div>
+
+    <div class="card">
+      <span class="lbl">Your service number</span>
+      <div class="val num" id="num1" contenteditable="true" spellcheck="false" data-hint="type the number"></div>
+      <span class="lbl">Delivers</span>
+      <div class="val">Weekdays, ~5:00 PM</div>
+    </div>
+
+    <p class="note">One text a day with the prices you care about,<br>
+    and a bot you can talk back to.<br><br>
+    No app. No account. No password.<br>
+    Built by hand, for you.</p>
+  </div>
+
+</div>
+
+<!-- ================= SHEET B (inside):  [ inside-left | inside-right ] ================= -->
+<div class="sheet">
+
+  <!-- ---------- PANEL 2 : INSIDE LEFT ---------- -->
+  <div class="panel">
+    <h2>What arrives</h2>
+    <p>Every weekday afternoon, around 5 o'clock, your phone buzzes once:</p>
+    <div class="txt">S&amp;P 749 | Gold 367 | Silver 52.16 [#9 869A94CC]</div>
+    <p>That's the whole product. No app to open, nothing to log into. It arrives, you glance,
+    you get on with your day. Weekends off. On market holidays you'll see the last close &mdash;
+    the market was shut, so the numbers genuinely haven't moved.</p>
+    <p>The <code>[#9 869A94CC]</code> isn't junk. It's a signature, and it's yours. See the
+    facing page.</p>
+
+    <h2>Talking back</h2>
+    <p>Text these to <b class="num" id="num2" contenteditable="true" spellcheck="false"
+    data-hint="the number"></b>. Capitals don't matter, extra words are ignored
+    (<code>add TSLA please</code> works). If it doesn't understand, it just sends help.
+    You can't break it.</p>
+
+    <table>
+      <tr><td class="c"><code>list</code></td><td>What it's tracking, and if alerts are on</td></tr>
+      <tr><td class="c"><code>add TSLA</code></td><td>Track a ticker &mdash; it checks the symbol is real first</td></tr>
+      <tr><td class="c"><code>remove TSLA</code></td><td>Stop tracking it</td></tr>
+      <tr><td class="c"><code>pause</code></td><td>Stop the daily texts, keep your list</td></tr>
+      <tr><td class="c"><code>resume</code></td><td>Start them again</td></tr>
+      <tr><td class="c"><code>help</code></td><td>Remind you of all this</td></tr>
+      <tr><td class="c"><code>log</code></td><td>Recent blocked attempts (see back)</td></tr>
+    </table>
+
+    <p>Up to <b>10 tickers</b>. Not arbitrary &mdash; it's the daily budget of the free
+    market-data service it runs on.</p>
+
+    <div class="warn">
+      <b>&#9888; Never text STOP.</b> That word never reaches your bot &mdash; your
+      <em>phone company</em> grabs it and blocks the number at the network level. Only texting
+      <b>START</b> undoes it; <code>resume</code> will not. To switch the texts off and on,
+      always use <code>pause</code> and <code>resume</code>.
+    </div>
+
+    <div class="foot"><span>Using it</span><span>2</span></div>
+  </div>
+
+  <!-- ---------- PANEL 3 : INSIDE RIGHT ---------- -->
+  <div class="panel">
+    <h2>Nobody commands it but you</h2>
+    <p>The bot takes orders from <b>your number only</b>. A text from anyone else is ignored
+    completely &mdash; no reply, no error, no hint anything is there. It doesn't argue with
+    strangers. It just doesn't answer.</p>
+
+    <h2>Proving a text is really yours</h2>
+    <p>Anyone can spoof a text message. So every message is <b>signed</b> &mdash; and you can
+    check it yourself, offline, with a key only you have. Nothing gets sent anywhere. No
+    internet needed.</p>
+
+    <div class="txt">S&amp;P 749 | Gold 367 | Silver 52.16 <b>[#9 869A94CC]</b></div>
+
+    <p><b>#9</b> is a counter &mdash; it climbs by exactly one per text.<br>
+    <b>869A94CC</b> is a cryptographic tag computed from the message <em>and</em> your secret
+    key. Change one character and it no longer matches.</p>
+
+    <ol class="steps">
+      <li>Open <code>spazito-verifier.html</code> in any browser. One file. Works with the
+      Wi-Fi <em>off</em> &mdash; that's the point.</li>
+      <li>Enter your key (below).</li>
+      <li>Paste the text you got, including the <code>[&hellip;]</code> at the end.</li>
+      <li>Press <b>Verify</b>.</li>
+    </ol>
+
+    <div class="verdict">
+      <div><span class="vt ok">&#10003; Authentic</span> &mdash; genuinely from your bot,
+      unaltered.</div>
+      <div><span class="vt bad">&#10007; Not verified</span> &mdash; wrong key, or forged /
+      tampered with. Don't trust it.</div>
+      <div><span class="vt amb">&#9888; Replay</span> &mdash; you've seen that number before.
+      Someone may be re-sending an old message.</div>
+      <div><span class="vt amb">&#9888; Gap</span> &mdash; the counter jumped. You missed texts.</div>
+    </div>
+
+    <div class="keybox">
+      <div class="lbl">Your verifier key &mdash; keep private</div>
+      <div class="fill" contenteditable="true" spellcheck="false" data-hint="click and type the verifier key"></div>
+    </div>
+
+    <p style="font-size:9.3pt; color:var(--muted); line-height:1.4;">This key never crosses the
+    internet and never appears in a text. It lives in exactly two places: the bot, and your
+    hand. Anyone holding it could forge a message that verifies &mdash; so guard it.</p>
+
+    <div class="foot"><span>Security</span><span>3</span></div>
+  </div>
+
+</div>
+
+<script>
+  // Keep the two service-number fields in sync as you type.
+  var a = document.getElementById('num1');
+  var b = document.getElementById('num2');
+  function link(from, to) {
+    from.addEventListener('input', function () {
+      if (to.textContent !== from.textContent) to.textContent = from.textContent;
+    });
+  }
+  link(a, b);
+  link(b, a);
+</script>
+
+</body>
+</html>
