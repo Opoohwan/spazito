@@ -44,40 +44,85 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 
 ## Now
 
-**The build is complete.** Chunks 0–8b (scaffold, all nine shell modules, six core
-modules, the council-gated rhythm, 342 tests at 100% coverage) shipped — the story
-lives in `doc/CHANGELOG.md`. What remains is putting it in the world:
+**Spazito is live.** Built, deployed, carrier-approved, and texting the recipient daily —
+that story lives in `doc/CHANGELOG.md`. One requirement is not yet met:
 
-### Chunk 9 — Deploy + live smoke test 🧑 💰
-- [ ] `clasp login` → `clasp create --type webapp` (`create-script` on clasp 3.x) →
-      set `"rootDir": "src"` in `.clasp.json` **before any push** (PROCESSES.md step 2)
-- [ ] `clasp push` → `clasp deploy` → copy the web-app URL
-- [ ] Set all Script Properties (API keys + numbers + `WEBHOOK_TOKEN`, `VERIFIER_KEY`,
-      `UNLOCK_SECRET`; optionally `TWILIO_API_KEY_SID` for the hardened auth path)
-- [ ] Wire the Twilio webhook (POST) to the **token-bearing** URL (`…/exec?k=…`);
-      leave the Fallback URL EMPTY (PROCESSES.md step 6)
-- [ ] Run `createTrigger` once from the editor (OAuth consent on first run)
-- [ ] 🧑 Smoke test: text `list` → confirm reply; run `testSendNow` → confirm the SMS
-      arrives and its `[#N TAG]` verifies in `tools/spazito-verifier.html`
-- [ ] **Integration-seams checklist** (break points unit tests can't cover): trigger
-      really fires 5pm LA; `.claspignore` held (app loads); real `doPost` payload shape;
-      real Alpha Vantage + Twilio responses match the golden fixtures — **if the live
-      shape differs, recapture and commit the refreshed fixture**; layered gate rejects
-      a bad token / wrong `From` / replayed SID; a live `[#N TAG]` verifies offline
-- [ ] Trial-account caveats until upgraded: verify the recipient number (else 21608),
-      and the trial body prefix breaks `[#N TAG]` verification (PROCESSES.md)
-- [ ] Key provisioning to the recipient: split-channel per ADR 008 §7 (never email the
-      key); include the "no tag = couldn't sign, not forged" note
-- 🛡 **Full council final pass + 🧑 David manual verification**
+### Chunk 10 — Deliver at 5:00, not "sometime in the 5 o'clock hour"
+
+**The problem, observed in production.** The spec says *"every weekday at 5:00pm."* We
+don't do that. Apps Script's `atHour(17)` recurring trigger fires at a **random minute
+inside the hour** — Google picks it, we cannot. Four days of live trigger history:
+
+| Tue Jul 7 | Wed Jul 8 | Thu Jul 9 | Fri Jul 10 |
+|---|---|---|---|
+| 5:09 PM | 5:49 PM | 5:02 PM | 5:58 PM |
+
+A 56-minute spread. That is not a 5pm text. **The recipient has been told, for now, to
+expect it any time before 6.**
+
+**The design.** A stable recurring trigger *books* a precise one — nothing schedules
+itself, so nothing can die permanently.
+
+1. **Scheduler** — five weekly triggers, Mon–Fri, **`atHour(15)`** (3–4pm). Only job:
+   create a **one-time trigger for today at exactly 5:00:00 PM**, after deleting any stale
+   one-time trigger left over from a previous day.
+   *Why 3pm and not 4pm:* even a 3:59 firing leaves a full hour of margin before the 5:00
+   target. A 4pm scheduler could fire at 4:58 and be racing its own deadline.
+2. **The precise run** — that one-time trigger fires at **5:00** and calls `runDailyAlert`.
+3. **`LAST_SENT_DATE` guard** — `runDailyAlert` records the date of a successful send and
+   refuses to send twice on the same date. (This key has been reserved in `SCHEMA.md` since
+   day one; this is the situation it was reserved for.)
+4. **Backstop** — keep five weekly triggers but move them to **`atHour(18)`** (6–7pm). Each
+   day they fire, see `LAST_SENT_DATE` is already today, and exit silently. If anything
+   upstream broke, **they send** — late, but delivered.
+   *Why a later hour:* a 5–6pm backstop could fire seconds from the precise run, both read
+   "not sent yet," and double-text. An hour apart, that race cannot happen.
+
+**Rejected: a self-rescheduling chain** (each run books the next). It gives the same
+precision, but the chain *is* the schedule — one failed run kills it **permanently and
+silently**, which is the single failure this project exists to prevent. In the chosen design
+the scheduler is an ordinary Google-owned recurring trigger; it cannot be broken by our code.
+
+**The failure ladder:**
+- Normal day → text at **5:00 sharp**
+- Scheduler or one-time trigger fails → **backstop delivers ~6pm.** Late, not lost.
+- Total failure → tomorrow's 3pm trigger runs regardless. Self-heals. Nothing goes dark.
+
+**The work:**
+- [ ] `Scheduler.scheduleTodaysAlert()` — new global entry point (trigger target): clear any
+      stale one-time alert trigger, then create one at **today 5:00:00 in the script's
+      timezone** (`America/Los_Angeles` — the recipient's clock, ADR 002)
+- [ ] **Decide the owner of `LAST_SENT_DATE`** — it is app state, so `Watchlist` by the
+      single-owner rule (ADR 006 §5); confirm at build rather than defaulting
+- [ ] `Scheduler.runDailyAlert()` — guard: if `LAST_SENT_DATE` is today, log and exit
+      **without sending**; record the date only **after a successful send** (a miss is worse
+      than a rare double — never mark sent for a send that didn't happen)
+- [ ] `Scheduler.installTrigger()` — rework to install 5× Mon–Fri `atHour(15)` →
+      `scheduleTodaysAlert`, plus 5× Mon–Fri `atHour(18)` → `runDailyAlert` (backstop).
+      Stay idempotent (clear our own triggers first) and keep the post-install verification
+- [ ] **Trigger budget:** 5 scheduler + 5 backstop + 1 one-time = **11**, against Apps
+      Script's **20-trigger cap**. Verify, and make sure stale one-time triggers cannot
+      accumulate toward it
+- [ ] ⚠️ **DST correctness** — `at()` takes a real timestamp, so "today at 5:00pm Pacific"
+      must be built in a way that survives the DST transition. Classic trap; verify explicitly
+- [ ] **Tests:** guard blocks a same-day second send; a new day sends; scheduler creates
+      exactly one one-time trigger at the right timestamp; scheduler clears a stale one
+      first; backstop exits quietly when the day is already sent; backstop **does** send when
+      it isn't; a failed send does **not** set `LAST_SENT_DATE`
+- [ ] 🧑 Live verification: watch the one-time trigger appear in the Triggers panel during
+      the 3pm hour; confirm the text lands at **5:00**; confirm the 6pm backstop fires and
+      does nothing
+- 🛡 **+ SMEs:** `gas-platform-expert` (one-time `at()` precision, the 20-trigger cap,
+      timezone/DST), `resilience-reviewer` (the failure ladder — prove nothing can go dark),
+      `spec-conformance-reviewer` (does it actually meet *"5:00pm"* now?)
 
 ---
 
 
 ## Parking Lot
 
-- **Duplicate-send guard** — a `LAST_SENT_DATE` key so a double-firing trigger can't text
-  twice. Noted in `SCHEMA.md` as reserved. Add if it proves needed; not worth the state
-  on day one.
+- _(Duplicate-send guard / `LAST_SENT_DATE` — no longer parked. It is now a required part of
+  **Chunk 10** above, where it guards against the backstop trigger double-sending.)_
 - **Dedicated `AUDIT_SALT`** — `SecurityVault.hashSender` currently salts with
   `VERIFIER_KEY` (key reuse: the same key signs messages). Exposure is ~nil for a
   single-recipient tool whose only audit reader holds that key, but a dedicated salt

@@ -8,6 +8,55 @@ setup. Everything else is in `git log`.
 
 ## [Unreleased]
 
+**It's live (Chunk 9 — deploy).** Spazito is deployed on Apps Script and texting its
+recipient. The daily alert delivers, commands come back through the security gate and get
+answered, and a live `[#N TAG]` was pasted into the offline verifier and came back
+**✅ Authentic** — the HMAC computed on Google's servers matching the one computed in a
+browser, byte for byte.
+
+**The carrier war, which took longer than building the entire app.** This is the part worth
+remembering, and it's now written up honestly in the README for anyone who tries this next:
+
+- **US carriers block all programmatic SMS from unregistered numbers** (error **30034**).
+  This is a carrier mandate via The Campaign Registry — *not* a Twilio policy. Switching
+  providers does not escape it.
+- **A2P 10DLC rejected us three times** (error **30912**), always the same finding: *"this
+  describes person-to-person messaging."* A small, interactive bot **reads as P2P to a
+  reviewer no matter how the description is worded** — the terse texts and the two-way
+  commands look like a conversation, not a broadcast. That path is unwinnable for a tool
+  like this. Cost of the lesson: **$19**, non-refundable.
+- **Toll-free verification is the path that works.** A different, more permissive review;
+  verification is **free**, and so are resubmissions. A local number cannot be converted —
+  a toll-free number must be bought.
+- It rejected us once on **30489 — "Website Must Be Established and Active."** A single thin
+  opt-in page thrown up to satisfy compliance gets rejected. What passed: a **real
+  multi-page site** (landing, how-it-works, features, sample messages, FAQ, and separate
+  privacy + terms pages), served free from `docs/` on GitHub Pages. It was approved within
+  minutes of the resubmit — the website *was* the whole objection.
+- **Twilio's console is broken for resubmitting** a rejected verification (`Invalid Customer
+  profile`, no way forward). The Messaging Compliance **API** works — and rejects a no-op
+  edit, so at least one field must actually change.
+
+**Honest cost.** The old docs claimed Spazito "runs entirely on free-tier infrastructure."
+**That was wrong**, and it's now corrected everywhere. Apps Script and Alpha Vantage are
+free; the SMS leg is not. Real ongoing cost is **~$28–30/yr**, and roughly **90% of it is
+fixed rent** — the number and its registration — not messaging. Sending the texts costs
+about $3 a year.
+
+**Published.** The repo is public under MIT at `github.com/Opoohwan/spazito` — verified clean
+of secrets in both the working tree *and* the full git history. The README now carries the
+architecture, the security model, and the carrier-registration survival guide. Also shipped:
+`tools/owners-manual.html`, a printable fold-over booklet for the recipient (one sheet,
+folded once) whose key and unlock phrase are typed **in the browser and never written to
+disk**, so a filled-in copy can't leak into the public repo.
+
+**Known gap → Chunk 10.** The trigger does not honor the *"5:00pm"* spec: Apps Script's
+`atHour(17)` fires at a random minute inside the hour (observed live: 5:02, 5:09, 5:49,
+5:58). The recipient has been told to expect it before 6 for now. The fix is scoped in the
+ROADMAP.
+
+---
+
 **The build (Chunks 0–8b).** The entire system now exists and is tested: 342 Jest
 tests, 100% coverage on every file, enforced by config (core pinned at 100%, per-file
 shell floors). Nine gated chunks, each one commit, each passed through the council
