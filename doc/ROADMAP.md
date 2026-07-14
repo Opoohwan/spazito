@@ -45,7 +45,44 @@ committed. This matches the commit-per-chunk discipline — no long uncommitted 
 ## Now
 
 **Spazito is live.** Built, deployed, carrier-approved, and texting the recipient daily —
-that story lives in `doc/CHANGELOG.md`. One requirement is not yet met:
+that story lives in `doc/CHANGELOG.md`. What's left:
+
+### Chunk 9.5 — Move the tests out of `src/` *(do this one first)*
+
+**Why first.** Chunks 10, 11, and 12 all add new test files. Move now and they land in the
+right place from the start; move later and there is simply more to move.
+
+**The problem.** Tests sit beside the code they test (`src/Config.js` next to
+`src/Config.test.js`). That is normal JavaScript practice — but here, **`src/` is what gets
+deployed.** `clasp` pushes it as-is, and a `.test.js` file that reaches Apps Script throws on
+load and **silently kills every execution in the project.** The only thing preventing that is
+a pattern in `.claspignore` — a config file is currently the last line of defense for whether
+the app runs at all. (The suite is also already split in two: `test/` holds `gasMocks.js`,
+`gasScope.js`, and `fixtures/`, while the tests themselves live in `src/`.)
+
+**Production risk: none. Not "low" — none.** Not one deployed file changes. `src/Config.js`,
+`src/core/*.js`, and `appsscript.json` are all untouched; `clasp push` would upload the
+identical 17 files. **No push is even required** — the running app never reads any file we
+are moving. The entire blast radius is Jest's require paths, and 342 tests report that in
+thirty seconds.
+
+- [ ] Move the 16 test files: `src/*.test.js` → `test/*.test.js`, and
+      `src/core/*.test.js` → `test/core/*.test.js`
+- [ ] Fix require paths (`require('./Config')` → `require('../src/Config')`)
+- [ ] `jest.config.js` — update `roots` **and** the per-directory coverage thresholds; the
+      `./src/core/` 100% floor must still resolve and still bite
+- [ ] `test/gasScope.js` globs `src/core/` to build the fake global scope — confirm it still
+      resolves from the new location
+- [ ] **342 green and coverage unchanged, or stop and revert.** No judgment calls.
+- [ ] Keep `.claspignore` as a backup, but it stops being load-bearing
+- [ ] **Delete the "don't copy our structure" warnings** in the README and ADR 006 §12 —
+      they would no longer be true. Replace with a short note recording *why* the layout is
+      what it is, so nobody helpfully moves it back.
+- [ ] **One isolated commit.** Do not bundle it with feature work — if something breaks you
+      want to know exactly what broke.
+- 🛡 **+ SMEs:** `test-quality-reviewer` (**lead** — the coverage floors must survive the
+      move, not just the tests), `architecture-guardian`, `gas-platform-expert` (confirm the
+      push payload is byte-for-byte identical)
 
 ### Chunk 10 — Deliver at 5:00, not "sometime in the 5 o'clock hour"
 
