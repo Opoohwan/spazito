@@ -15,15 +15,45 @@ Gate**, each is **one commit**. A chunk is not "done" until its gate is clean an
 committed. This matches the commit-per-chunk discipline — no long uncommitted stretches.
 
 ### The Council Gate — after each chunk, before the commit
-- **Convened:** the five always-on reviewers **+** that chunk's domain SMEs.
-  - **Always-on five (every gate):** `architecture-guardian`, `code-quality-reviewer`,
-    `test-quality-reviewer` (the **QA lead**), `security-reviewer`, `tech-debt-hunter`.
-  - Per-chunk lines below list only the **added** domain SMEs.
-- **Adversarial, not a rubber stamp:** "looks good, no findings" is a failure of
-  diligence, not a pass. Every finding carries a `file:line` and a concrete failure
-  scenario. Reviewers report independently — no consensus-softening.
-- **Findings come back in chat. No `.md` report files.**
-- Flow: run the gate → findings to chat → resolve → re-gate if needed → **commit**.
+
+**Claude runs the gate, unprompted, at every chunk boundary.** David does not have to ask
+for it. Findings come back to chat as one consolidated, severity-ranked critique.
+
+**1. The free checks come first.** Before convening anyone, Claude runs the mechanical
+invariants himself: the ADR 006 §5 `grep` boundaries (only `PriceService` names Alpha
+Vantage, only `SmsService` names Twilio, only `Config`/`Watchlist`/`SecurityVault` touch
+`PropertiesService`), the dual-load guards, the frozen vocabularies, and the coverage
+report. These cost nothing and catch the dumb stuff before a reviewer is spent on it.
+
+**2. The panel is sized to the chunk.** *(Adopted mid-build, from Chunk 7 on. The original
+policy was "all five always-on reviewers, every chunk" — that was replaced because most of
+the duplicated cost was reviewers re-deriving the same context, not finding new bugs.)*
+
+| Chunk kind | Panel |
+|---|---|
+| Small / mechanical (e.g. **9.5**) | **3–4** — the QA lead, one combined architecture-and-debt reviewer, and the one relevant SME |
+| Feature / integration (e.g. **10**, **11**) | **~5** — add `resilience-reviewer` and the domain SMEs |
+| Security-critical, or anything that **spends money or budget** (e.g. **12**) | **Full panel.** No trimming. |
+
+The per-chunk 🛡 lines below name the SMEs *and the lead* for that gate.
+
+**3. It is adversarial, not a rubber stamp.** "Looks good, no findings" is a failure of
+diligence, not a pass. Every finding carries a `file:line` and a concrete failure scenario.
+Reviewers report independently — no consensus-softening.
+
+**4. Findings go to chat. Never to `.md` report files.**
+
+**5. Re-gate only on behavior changes.** Send follow-ups to the *same* agent (warm context)
+rather than spawning a fresh one. Documentation- or test-only fixes do not need a re-gate.
+
+**Flow:** free checks → convene → findings to chat → David decides what gets fixed → resolve
+→ re-gate if behavior changed → **commit**.
+
+> **This earned its keep.** The lean gates still caught the swallowed-error bug that would
+> have made a dead run look healthy, the carrier `STOP` trap, and the Chunk 8b lockout
+> self-DoS where ambient spam could have sealed the bot permanently. Value concentrates in
+> SME fact-verification, the QA lead's hunt for hollow tests, and adversarial security on
+> hot paths.
 
 ### Testing from day 1 — the QA-lead standard
 - The harness exists in **Chunk 0**, before any feature code.
