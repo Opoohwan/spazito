@@ -116,6 +116,77 @@ the scheduler is an ordinary Google-owned recurring trigger; it cannot be broken
       timezone/DST), `resilience-reviewer` (the failure ladder — prove nothing can go dark),
       `spec-conformance-reviewer` (does it actually meet *"5:00pm"* now?)
 
+### Chunk 11 — A failed send must fail LOUDLY (real bug, with a due date)
+
+**The bug.** `SmsService.send()` catches its failures and returns `{ outcome: 'failed' }` —
+it never throws. `Scheduler.runDailyAlert()` calls it and **ignores the return value**. So
+when a send fails, the execution completes **green**, Google sends no trigger-failure email,
+and the recipient's texts simply stop. Nobody is told. **That is precisely the silent failure
+this project was built to prevent, and it is sitting in our code.**
+
+**It is not hypothetical, and it is dated.** The Twilio balance is ~$17.70 against ~$2.40/mo
+— it runs dry around **February 2027**. When it does, every send fails and the gift goes
+quiet with no alarm.
+
+- [ ] `Scheduler.runDailyAlert()` — inspect the `SmsService.send()` outcome. `FAILED` means
+      the daily alert **did not do its job**: log it and **throw**, so the execution goes red
+      and Google emails the owner. (`DEBUG` is not a failure; do not throw on it.)
+- [ ] Same treatment in `CommandHandler` — decide whether a failed *reply* should also go
+      loud, or only log (it is less critical than the daily alert; make it a decision, not
+      an oversight)
+- [ ] **Tests:** a failed send throws and the run goes red; a debug-mode send does not throw;
+      a successful send stays quiet
+- [ ] 🧑 **Operational, not code:** turn on **Twilio auto-recharge** (Billing → auto-top-up
+      when the balance drops below ~$5). Removes this whole class of problem at the source.
+- 🛡 **+ SMEs:** `resilience-reviewer` (lead), `twilio-expert`, `cost-quota-guardian`
+
+### Chunk 12 — `now`: an on-demand price check
+
+**What the recipient gets.** He texts **`now`** and Spazito replies with the current price
+line immediately, instead of waiting for 5pm.
+
+**The catch — and it is the entire design problem.** Alpha Vantage's free tier is **25 calls
+per day**, and an on-demand check costs **one call per ticker**:
+
+- The 5pm run already spends `watchlist size` calls (3 by default, **up to 10**).
+- Every `add` spends 1.
+- With a full 10-ticker watchlist, **a single `now` costs 10 calls.** Two of them plus the
+  daily run = 30 — **which breaks the 5pm alert.** A convenience command must never starve
+  the core product.
+
+So this feature **cannot ship without a budget guard** — and that guard is the per-day
+Alpha Vantage counter that **ADR 007 explicitly declined** ("daily spend is not metered…
+not worth a per-day counter for a single occasional user"). This chunk is what makes it
+necessary. **That ADR decision has to be revisited, and the ADR amended**, not quietly
+contradicted.
+
+- [ ] **AV daily budget meter** — state key counting calls used today, reset on date change.
+      `PriceService` is the only module that spends, so it owns it (ADR 006 §5).
+- [ ] **The guard — the daily alert always wins.** Refuse an on-demand check if serving it
+      would leave fewer calls than tonight's 5pm run needs. Reply warmly and honestly
+      ("not enough data budget left today — your 5pm text is protected"), never degrade
+      silently.
+- [ ] **Cooldown** (~10–15 min) so a burst of `now` texts can't drain the budget even when
+      it is healthy. One timestamp.
+- [ ] **Consider a short cache** — a repeat request within N minutes returns the last fetch
+      for **zero calls**. The market barely moves in 10 minutes, and after close it does not
+      move at all. This may make the cooldown mostly free.
+- [ ] `core/CommandParser` — add `now` and settle the aliases (`prices`? `quote`? `check`?)
+- [ ] `CommandHandler` — dispatch → budget guard → `PriceService` → `Formatter` → reply
+- [ ] ⚠️ **Open decision: sign the on-demand text, or not?** The daily alert carries a
+      monotonic `[#N TAG]`. If `now` texts also consume sequence numbers, the recipient's
+      verifier will report **"gaps"** in his daily texts that are really just his own
+      on-demand requests — turning a security signal into noise. Either (a) sign it and
+      explain that clearly in the owner's manual, or (b) leave command replies unsigned and
+      keep the counter purely for scheduled alerts. **Decide before writing code.**
+- [ ] **Tests:** the guard refuses when the 5pm run would be starved; cooldown blocks a rapid
+      second request; the cache serves without spending; market-closed returns last close;
+      the reply matches the daily line format
+- [ ] Update `Replies.help()`, the README command table, the public site, and the owner's
+      manual
+- 🛡 **+ SMEs:** `cost-quota-guardian` (**lead** — this chunk exists to spend budget and must
+      not starve the daily run), `alpha-vantage-expert`, `spec-conformance-reviewer`
+
 ---
 
 
