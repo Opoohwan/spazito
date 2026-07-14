@@ -133,6 +133,52 @@ have run ~$40/year.)
 
 ---
 
+## The other limit that will bite you: 25 API calls a day
+
+The carrier wall is the one that stops you shipping. This is the one that quietly breaks the
+product *after* you ship it.
+
+Alpha Vantage's free tier gives you **25 requests per day and 5 per minute** — shared across
+everything your app does. And the crucial detail: **there is no batch endpoint.** Every price
+fetch is **one call per ticker.**
+
+Do the arithmetic before you design anything:
+
+- The daily 5pm run costs **one call per ticker on the watchlist.** A 10-ticker watchlist
+  spends **10 of your 25 every single day**, before you've done anything else.
+- Every `add` command spends **1** (we validate the symbol against the API before storing it,
+  so we never add a ticker that doesn't exist).
+
+**Here's the trap.** The obvious next feature is "let me text it and get prices *right now*."
+That request costs **another full watchlist's worth of calls, every time it's used.** With 10
+tickers: the daily run is 10, and two on-demand checks is 20 more. That's 30 against a
+25-call ceiling — and **you have broken the daily alert, which is the actual product, in
+order to serve a convenience command.**
+
+If you add an on-demand feature, you **must** meter your daily spend and refuse the
+convenience request when it would starve the scheduled one. There's no way around it.
+
+**What this codebase does about the limit:**
+
+- **Caps the watchlist at 10 tickers.** Not arbitrary — it's the budget (ADR 007).
+- **Spaces calls 15 seconds apart.** This one is nastier than it looks: exceeding 5/min
+  doesn't return an error, it returns a **rate-limit envelope where the price should be.** An
+  unspaced multi-ticker run therefore produces *silent partial data every single day* — and
+  it looks like the API is just flaky rather than like you have a bug.
+- **Never retries.** Retrying a rate-limited call just deepens the throttling and burns more
+  of the same budget you're already out of.
+- **Runs the free checks before the paid one.** `add` checks for duplicates and the cap
+  *before* spending a call to validate the symbol, so a pointless `add` costs nothing.
+- **Short-circuits.** The first rate-limit response stops the run rather than spending the
+  remaining calls to hear the same rejection ten more times.
+
+**What it does *not* do:** meter daily spend. That's an accepted, documented risk for a single
+scheduled run (ADR 007), but it stops being acceptable the moment you add anything on-demand.
+That's exactly why it's a blocker on Chunk 12 in the [ROADMAP](doc/ROADMAP.md) rather than a
+nice-to-have.
+
+---
+
 ## The texts, and talking back
 
 ```
