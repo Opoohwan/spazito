@@ -163,14 +163,20 @@ contradicted.
 - [ ] **AV daily budget meter** — state key counting calls used today, reset on date change.
       `PriceService` is the only module that spends, so it owns it (ADR 006 §5).
 - [ ] **The guard — the daily alert always wins.** Refuse an on-demand check if serving it
-      would leave fewer calls than tonight's 5pm run needs. Reply warmly and honestly
-      ("not enough data budget left today — your 5pm text is protected"), never degrade
-      silently.
-- [ ] **Cooldown** (~10–15 min) so a burst of `now` texts can't drain the budget even when
-      it is healthy. One timestamp.
-- [ ] **Consider a short cache** — a repeat request within N minutes returns the last fetch
-      for **zero calls**. The market barely moves in 10 minutes, and after close it does not
-      move at all. This may make the cooldown mostly free.
+      would leave fewer calls than tonight's 5pm run needs.
+- [ ] **The refusal must SAY WHY.** Never a bare "no" — the recipient should understand that
+      the bot is protecting his 5pm text, not malfunctioning. A refusal he doesn't understand
+      reads like a broken gift. Proposed copy (in `core/Replies`, one SMS segment):
+      > *"I'm out of price checks for today — I'm holding the last few back so your 5pm text
+      > still arrives. Ask me again tomorrow."*
+      Says what happened, why it happened, and what to do next — the `Replies` standard.
+- [ ] **Cooldown / cache — serve, don't scold.** If he asks again within a few minutes,
+      **return the cached prices for zero API calls** rather than refusing him. The market
+      has barely moved in ten minutes, and after the close it has not moved at all. Note the
+      staleness honestly rather than pretending it's fresh:
+      > *"(checked 3 min ago) S&P 749 | Gold 367 | Silver 52.16"*
+      This turns the rate limit from a wall he hits into something he never notices — and it
+      is the cheapest guard we have, because a burst of `now` texts then costs **nothing**.
 - [ ] `core/CommandParser` — add `now` and settle the aliases (`prices`? `quote`? `check`?)
 - [ ] `CommandHandler` — dispatch → budget guard → `PriceService` → `Formatter` → reply
 - [ ] ⚠️ **Open decision: sign the on-demand text, or not?** The daily alert carries a
